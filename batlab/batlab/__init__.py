@@ -5,7 +5,6 @@ import serial.tools.list_ports
 from time import sleep, ctime, time
 import datetime
 import sys
-import msvcrt
 import threading
 import queue
 import sys
