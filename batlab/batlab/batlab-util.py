@@ -122,8 +122,8 @@ def parse_cmd(cmd,bp):
 				vl = '{:.4f}'.format(bp.batpool[bp.batactive].read(iter,VOLTAGE_LIMIT_DCHG).asvoltage())
 				ih = '{:.4f}'.format(bp.batpool[bp.batactive].read(iter,CURRENT_LIMIT_CHG).ascurrent())
 				il = '{:.4f}'.format(bp.batpool[bp.batactive].read(iter,CURRENT_LIMIT_DCHG).ascurrent())
-				th = '{:.4f}'.format(bp.batpool[bp.batactive].read(iter,TEMP_LIMIT_CHG).astemperature())
-				tl = '{:.4f}'.format(bp.batpool[bp.batactive].read(iter,TEMP_LIMIT_DCHG).astemperature())
+				th = '{:.4f}'.format(bp.batpool[bp.batactive].read(iter,TEMP_LIMIT_CHG).astemperature(bp.batpool[bp.batactive].R,bp.batpool[bp.batactive].B))
+				tl = '{:.4f}'.format(bp.batpool[bp.batactive].read(iter,TEMP_LIMIT_DCHG).astemperature(bp.batpool[bp.batactive].R,bp.batpool[bp.batactive].B))
 				print('CELL'+str(iter)+':',sp,'A',vh,'V',vl,'V',ih,'A',il,'A',th,'degF',tl,'degF')
 	if p[0] == 'impedance':
 		if isready(bp) and len(p) > 1:
