@@ -2,10 +2,10 @@ from setuptools import setup
 
 setup(name='batlab',
       version='0.2.1',
-      description='low leve commuication between a PC and a batlab unit',
+      description='Low level library for communication with the Batlab V1.0 Battery Testing System by Lexcelon',
       url='https://github.com/Lexcelon/batlab-software-python',
-      author='Dan Cambron',
-      author_email='john.broadbent.ky@gmail.com',
+      author='Lexcelon, LLC',
+      author_email='dcambron@lexcelon.com',
       #author_email='danielcambron11@gmail.com','john.broadbent.ky@gmail.com','support@lexcelon.com.',
       license='GPL3',
       packages=['batlab'],

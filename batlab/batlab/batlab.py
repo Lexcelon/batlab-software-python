@@ -1,18 +1,22 @@
 #clsBatlab
-from serial import *
-from subprocess import call
+import serial
 import serial.tools.list_ports
 from time import sleep, ctime, time
 import datetime
-import sys
-#import msvcrt
 import threading
 import queue
 import sys
 import math
-#
-DEBUG = None
-COMPENSATE_CURRENT = False
+###################################################################################################
+## Local Functions
+###################################################################################################
+DEBUG_MODE = None
+#DEBUG_MODE = True
+def log(str):
+	if DEBUG_MODE:
+		print(str)
+###################################################################################################
+## batpool class - manage a pool of connected batlabs by maintaining a list of plugged-in systems
 ###################################################################################################
 class batpool:
 	def __init__(self):
@@ -23,6 +27,7 @@ class batpool:
 		thread = threading.Thread(target=self.batpool_mgr)
 		thread.daemon = True
 		thread.start()
+		
 	def batpool_mgr(self):
 		while(True):
 			portlist = get_ports()
@@ -43,17 +48,22 @@ class batpool:
 					self.batpool[port].disconnect()
 					del self.batpool[port]
 				return
-			sleep(1)
-###################################################################################################
-def isready(bp):
-	if bp.batactive == '':
-		print('No Batlab Currently Set As Active')
-		return False
-	if bp.batactive in bp.batpool:
-		return True
-	else:
-		print('Batlab on ' + bp.batactive + ' not found')
-		return False
+			sleep(0.5)
+			
+	def isready(self):
+		if self.batactive == '':
+			log('No Batlab Currently Set As Active')
+			return False
+		if self.batactive in self.batpool:
+			return True
+		else:
+			log('Batlab on ' + self.batactive + ' not found')
+			return False
+			
+	def quit(self):
+		self.quitevt.set() #tries to tell all of the Batlabs to stop the tests
+		sleep(0.5)
+
 ###################################################################################################
 ## packet class - holds information related to usb packets
 ###################################################################################################
@@ -74,6 +84,7 @@ class packet:
 		self.R = [1500,1500,1500,1500]
 		self.B = [3380,3380,3380,3380]
 	def set_temps(Rlist,Blist):
+		'''deprecated'''
 		for i in range(0,4):
 			self.R[i] = Rlist[i]
 			self.B[i] = Blist[i]
@@ -87,8 +98,6 @@ class packet:
 		if(self.data & 0x8000): #the voltage can be negative
 			self.data = -0x10000 + self.data
 		flt = float(self.data * 4.5 / 2**15)
-		#if flt > 0.001 and flt < 4.0:
-		#	flt = flt + (0.0011 * flt - 0.0038)
 		return flt
 	def asvcc(self):
 		return 2**15 * 4.096 / self.data
@@ -134,22 +143,13 @@ class packet:
 		if(self.data & 0x8000): #the current can be negative
 			self.data = -0x10000 + self.data
 		return self.data * 4.096 / 2**15
-	def ascurrent_comp(self,v,md):
-		if(self.data & 0x8000): #the current can be negative
-			self.data = -0x10000 + self.data
-		if COMPENSATE_CURRENT == True:
-			if md == MODE_CHARGE:
-				v = 5.0 - v
-			if v > 2.2:
-				return self.data * 4.096 / 2**15
-			else:
-				tmp = self.data * 4.096 / 2**15
-				#y = 0.1952x - 0.4177
-				tmp = tmp + (v * 0.1952 - 0.4177)
-				return tmp
-		else:
-			return self.data * 4.096 / 2**15
 	def print_packet(self):
+		if(self.type == 'RESPONSE'):
+			if self.write == True:
+				log('Wrote: Cell '+str(self.namespace)+', Addr '+"{0:#4X}".format(self.addr & 0x7F))
+			else:
+				log('Read: Cell '+str(self.namespace)+', Addr '+"{0:#4X}".format(self.addr & 0x7F)+': '+str(self.data))
+	def display(self):
 		if(self.type == 'RESPONSE'):
 			if self.write == True:
 				print('Wrote: Cell '+str(self.namespace)+', Addr '+"{0:#4X}".format(self.addr & 0x7F))
@@ -171,8 +171,8 @@ class encoder:
 class batlab:
 ###################################################################################################
 	def __init__(self,port=None):
-		self.sn = ''
-		self.ver = ''
+		self.sn = '' #deprecated
+		self.ver = '' #deprecated
 		self.port = port
 		self.is_open = False
 		self.qstream = queue.Queue()   #Queue of stream packets
@@ -185,13 +185,15 @@ class batlab:
 	def connect(self):
 		while True:
 			try:
-				self.ser = Serial(None,38400,timeout=1)
+				self.ser = serial.Serial(None,38400,timeout=1)
 				self.ser.port = self.port
 				self.ser.close()
 				self.ser.open()
 			except:
-				self.reset_port()
-				continue
+				#self.reset_port()
+				#continue
+				log("Could not connect to port")
+				return -1
 			break
 		self.is_open = self.ser.is_open
 		thread = threading.Thread(target=self.thd_read) #start receiver thread
@@ -212,13 +214,9 @@ class batlab:
 			self.sn = str(a + b*65536)
 			self.ver = str(self.read(0x04,0x02).data)
 		else:
-			print("The Batlab is in the bootloader")
+			log("The Batlab is in the bootloader")
 ###################################################################################################
 	def disconnect(self):
-		#self.write(CELL0,MODE,MODE_STOPPED)
-		#self.write(CELL1,MODE,MODE_STOPPED)
-		#self.write(CELL2,MODE,MODE_STOPPED)
-		#self.write(CELL3,MODE,MODE_STOPPED)
 		self.killevt.set()
 		self.ser.close()
 ###################################################################################################
@@ -230,17 +228,19 @@ class batlab:
 		except:
 			return 0
 ###################################################################################################
-	def reset_port(self):
-		portinfos = serial.tools.list_ports.comports()
-		for portinfo in portinfos:
-			print(portinfo.device + ' ' + str(portinfo.vid) + ' ' + str(portinfo.pid))
-			if(portinfo.vid == 0x04D8 and portinfo.pid == 0x000A and portinfo.device == self.ser.port):
-				devname = 'DevManView /disable_enable "' + portinfo.description +'"'
-				print("Resetting COM port "+devname)
-				call(devname,shell=True)
-				return
-		print("Device not found...")
-		return
+	'''	
+		def reset_port(self):
+			portinfos = serial.tools.list_ports.comports()
+			for portinfo in portinfos:
+				print(portinfo.device + ' ' + str(portinfo.vid) + ' ' + str(portinfo.pid))
+				if(portinfo.vid == 0x04D8 and portinfo.pid == 0x000A and portinfo.device == self.ser.port):
+					devname = 'DevManView /disable_enable "' + portinfo.description +'"'
+					print("Resetting COM port "+devname)
+					call(devname,shell=True)
+					return
+			print("Device not found...")
+			return
+	'''
 ###################################################################################################
 	def read(self,namespace,addr):
 		try:
@@ -304,6 +304,44 @@ class batlab:
 ###################################################################################################
 	def set_current(self,cell,current):
 		self.write(cell,CURRENT_SETPOINT,int((current/5.0)*640))
+	def sn(self):
+		a = self.read(0x04,0x00).data 
+		b = self.read(0x04,0x01).data
+		return a + b*65536
+	def ver(self):
+		return self.read(0x04,0x02).data
+###################################################################################################
+	def bootload(self,filename):
+			'''command the Batlab to enter the bootloader'''
+			print("Entering Bootloader")
+			self.write(UNIT,BOOTLOAD,0x0000)
+			sleep(2)
+			'''load the image onto the batlab'''
+			with open(filename, "rb") as f:
+				byte = f.read(1)
+				ctr = 0x0400
+				while byte:
+					self.write(BOOTLOADER,BL_ADDR,int(ctr))
+					self.write(BOOTLOADER,BL_DATA,int(ord(byte)))
+					bb = self.read(BOOTLOADER,BL_DATA).value()
+					if(bb != int(ord(byte))):
+						log("Data Mismatch. Trying again")
+						continue
+					print(str(ctr - 0x03FF) + " of 15360: " + str(bb) ) 
+					ctr = ctr + 1
+					byte = f.read(1)
+			'''attempt to reboot into the new image'''
+			self.write(BOOTLOADER,BL_BOOTLOAD,0x0000)
+			sleep(2)
+			if(self.read(BOOTLOADER,BL_DATA).value() == COMMAND_ERROR):
+				self.sn = int(self.read(UNIT,SERIAL_NUM).value()) + (int(self.read(UNIT,DEVICE_ID).value()) << 16)
+				print("Connected to Batlab " + str(self.sn))
+				fw = int(self.read(UNIT,FIRMWARE_VER).value())
+				print("Firmware Version " + str(fw))
+				return True
+			else:
+				print("Batlab still in Bootloader -- Try again")
+				return False
 ###################################################################################################
 	def calibration_reset_voltage(self):
 		self.write(UNIT,VOLT_CH_CALIB_OFF,0)
@@ -350,7 +388,11 @@ class batlab:
 		while True:
 			if self.killevt.is_set(): #stop the thread if the batlab object goes out of scope
 				return
-			val = self.ser.read()
+			val = None
+			try:
+				val = self.ser.read()
+			except:
+				return
 			if(val):
 				inbuf = []
 				ctr = 0
@@ -371,8 +413,7 @@ class batlab:
 					p.addr = inbuf[1] & 0x7F   
 					p.data = inbuf[2] + inbuf[3]*256  #data payload
 					self.qresponse.put(p)                     #Add the packet to the queue
-					if(DEBUG):
-						p.print_packet()
+					p.print_packet()
 				elif(byte == 0xAF): #stream packet Byte 1: 0xAF
 					while len(inbuf) < 12 and ctr < 20:
 						for b in self.ser.read():
@@ -391,11 +432,9 @@ class batlab:
 						p.current = inbuf[8] + inbuf[9] * 256
 						p.voltage = inbuf[10] + inbuf[11] * 256
 					self.qstream.put(p)                     #Add the packet to the queue
-					if(DEBUG):
-						p.print_packet()
+					p.print_packet()
 				else:
-					if DEBUG:
-						print("<<thdBatlab:Packet Loss Detected>>")
+					log("<<thdBatlab:Packet Loss Detected>>")
 ###################################################################################################
 ###################################################################################################
 ###################################################################################################
@@ -404,22 +443,10 @@ def get_ports():
 	portinfos = serial.tools.list_ports.comports()
 	port = []
 	for portinfo in portinfos:
-		if DEBUG:
-			print(portinfo)
-			print(portinfo.device + ' ' + str(portinfo.vid) + ' ' + str(portinfo.pid))
+		log(portinfo)
+		log(portinfo.device + ' ' + str(portinfo.vid) + ' ' + str(portinfo.pid))
 		if(portinfo.vid == 0x04D8 and portinfo.pid == 0x000A):
-			if DEBUG:
-				print("found Batlab on "+portinfo.device)
-			port.append(portinfo.device)
-	return port
-def get_demux():
-	portinfos = serial.tools.list_ports.comports()
-	port = []
-	for portinfo in portinfos:
-		print(portinfo.device + ' ' + str(portinfo.vid) + ' ' + str(portinfo.pid))
-		if(portinfo.vid == 0x04D8 and portinfo.pid == 0x000B):
-			if DEBUG:
-				print("found Batlab Relay DEMUX on "+portinfo.device)
+			log("found Batlab on "+portinfo.device)
 			port.append(portinfo.device)
 	return port
 def ascharge(data):
