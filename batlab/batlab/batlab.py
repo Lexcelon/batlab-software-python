@@ -7,6 +7,14 @@ import threading
 import queue
 import sys
 import math
+import os
+try:
+	# For Python 3.0 and later
+	from urllib.request import urlopen
+except ImportError:
+	# Fall back to Python 2's urllib2
+	from urllib2 import urlopen
+import re
 ###################################################################################################
 ## Local Functions
 ###################################################################################################
@@ -243,6 +251,9 @@ class batlab:
 	'''
 ###################################################################################################
 	def read(self,namespace,addr):
+		if not (namespace in NAMESPACE_LIST):
+			print("Namespace Invalid")
+			return None
 		try:
 			q = packet()
 			outctr = 0
@@ -269,6 +280,12 @@ class batlab:
 			return None
 ###################################################################################################
 	def write(self,namespace,addr,value):
+		if not (namespace in NAMESPACE_LIST):
+			print("Namespace Invalid")
+			return None
+		if value > 65535:
+			print("Invalid value: 16 bit value expected")
+			return None
 		try:
 			q = None
 			outctr = 0
@@ -311,7 +328,17 @@ class batlab:
 	def ver(self):
 		return self.read(0x04,0x02).data
 ###################################################################################################
-	def bootload(self,filename):
+	def firmware_bootload(self,filename):
+			'''Check to make sure image is at least the right size'''
+			try:
+				with open(filename, "rb") as f:
+					sz = os.path.getsize(f.name)
+					if not (sz == 15360):
+						print("Image filesize of",sz,"not allowed")
+						return False
+			except:
+				print("Could not open file")
+				return False
 			'''command the Batlab to enter the bootloader'''
 			print("Entering Bootloader")
 			self.write(UNIT,BOOTLOAD,0x0000)
@@ -342,6 +369,47 @@ class batlab:
 			else:
 				print("Batlab still in Bootloader -- Try again")
 				return False
+###################################################################################################
+	def firmware_check(self,flag_download):
+		# Download latest version and get version number
+		urlpath =urlopen('https://github.com/Lexcelon/batlab-firmware-measure/releases/latest/')
+		string = urlpath.read().decode('utf-8')
+		pattern = re.compile('/[^/]*\.bin"') #the pattern actually creates duplicates in the list
+		filelist = pattern.findall(string)
+		#print(filelist)
+		filename = filelist[0]
+		versionlist = re.findall(r'\d+', filename)
+		#print(versionlist)
+		version = int(versionlist[0])
+		pattern = re.compile('".*\.bin"') #the pattern actually creates duplicates in the list
+		filelist2 = pattern.findall(string)
+		#print(filelist2)
+		filename2 = filelist2[0]
+		#print(filename2)
+		filename2=filename2[:-1]
+		filename2=filename2[1:]
+		filename=filename[:-1]
+		filename=filename[1:]
+		if flag_download == True:
+			#print('https://github.com' + filename2)
+			remotefile = urlopen('https://github.com' + filename2)
+			localfile = open(filename,'wb')
+			localfile.write(remotefile.read())
+			localfile.close()
+			remotefile.close()
+		#print("Latest firmware version is:",version)
+		return [version,filename]
+###################################################################################################
+	def firmware_update(self):
+		version,filename = self.firmware_check(True)
+		loadedver = self.read(UNIT,FIRMWARE_VER).data
+		print("Latest Version is",version,". Current version is",loadedver)
+		if(version > loadedver):
+			print("Initiating Firmware Update")
+			sleep(2)
+			self.firmware_bootload(filename)
+		else:
+			print("Firmware is up to date.")
 ###################################################################################################
 	def calibration_reset_voltage(self):
 		self.write(UNIT,VOLT_CH_CALIB_OFF,0)
@@ -460,6 +528,7 @@ CELL3             = 0x03
 UNIT              = 0x04
 BOOTLOADER        = 0x05
 COMMS             = 0xFF
+NAMESPACE_LIST = [0x00,0x01,0x02,0x03,0x04,0x05,0xFF]
 '''cell register map'''
 MODE              = 0x00
 ERROR             = 0x01
@@ -493,6 +562,7 @@ CURR_LOWV_SCA     = 0x1C
 CURR_LOWV_OFF     = 0x1D
 CURR_LOWV_OFF_SCA = 0x1E
 
+CELLREG_MAX = 0x1E
 '''unit register map'''
 SERIAL_NUM       =  0x00
 DEVICE_ID        =  0x01
@@ -511,6 +581,8 @@ VOLT_DC_CALIB_OFF = 0x0D
 VOLT_DC_CALIB_SCA = 0x0E
 LOCK              = 0x0F
 ZERO_AMP_THRESH   = 0x10
+
+UNITREG_MAX = 0x10
 '''COMMs register map'''
 LED0             = 0x00
 LED1             = 0x01
@@ -518,6 +590,8 @@ LED2             = 0x02
 LED3             = 0x03
 PSU              = 0x04
 PSU_VOLTAGE      = 0x05
+
+COMMREGS_MAX = 0x05
 '''BOOTLOAD register map'''
 BL_BOOTLOAD      = 0x00
 BL_ADDR          = 0x01

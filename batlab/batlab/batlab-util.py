@@ -5,11 +5,9 @@ from time import sleep, ctime, time
 # you more python inclined people would completely re-write this script to be more Pythonic.
 from batlab import * 
 ###################################################################################################
-ver = '1.0.0'
-###################################################################################################
 def main():
 	bp = batpool() # Create the Batpool
-	print('Batlab Utility Script Version ',ver)
+	print('Batlab Utility Script')
 	parse_cmd('help',bp)
 	while(True):
 		try:
@@ -29,11 +27,10 @@ def parse_cmd(cmd,bp):
 		print(' list                              - list ports and SNs of connected batlabs   ')
 		print(' active (port)                     - set currently active batlab. Or read value')
 		print(' quit                              - Exit the program                          ')
-		#print(' cmd [input file]                  - Execute batlab-util commands in input file')
 		print('Active Batlab Commands                                                         ')
 		print(' write [namespace] [addr] [data]   - General Purpose Command for Writing Regs  ')
 		print(' read [namespace] [addr]           - General purpose Command for Reading Regs  ')
-		print(' update [firmware bin file]        - install firmware update, local bin file   ')
+		print('    example: "read UNIT FIRMWARE_VER"                                          ')
 		print(' info                              - return unit namespace information         ')
 		print(' measure (cell)                    - return voltage,current,temp,charge        ')
 		print(' setpoints (cell)                   - return setpoint information for cell     ')
@@ -44,6 +41,9 @@ def parse_cmd(cmd,bp):
 		#print(' test [settings file]              - starts full cycle test using settings ini ')
 		print(' stop (cell)                       - set all cells to stop mode, or only 1 cell')
 		print(' reset (cell)                      - set all cells to IDLE mode, or only 1 cell')
+		print(' firmware load [firmware bin file] - load firmware update from local bin file  ')
+		print(' firmware update                   - check for firmware update. Load if needed ')
+		print(' firmware check                    - check for firmware update.                ')
 		
 	###############################################################################################
 	# FOLLOWING COMMANDS HELP YOU MANAGE THE CONTEXT - The Batlab specific commands only interact 
@@ -77,11 +77,17 @@ def parse_cmd(cmd,bp):
 	###############################################################################################
 	if bp.isready(): #checks to make sure the bp.batpool[bp.batactive] exists
 		b = bp.batpool[bp.batactive] #get the active batlab object
-		if p[0] == 'write':
-			b.write(eval(p[1]),eval(p[2]),eval(p[3])).display()
+		if p[0] == 'write' and len(p) == 4:
+			try:
+				b.write(eval(p[1]),eval(p[2]),eval(p[3])).display()
+			except:
+				print("Invalid Usage.")
 			
-		if p[0] == 'read':
-			b.read(eval(p[1]),eval(p[2])).display()
+		if p[0] == 'read' and len(p) == 3:
+			try:
+				b.read(eval(p[1]),eval(p[2])).display()
+			except:
+				print("Invalid Usage.")
 			
 		if p[0] == 'info':
 			print('Serial Num  :',b.read(UNIT,SERIAL_NUM).data + b.read(UNIT,DEVICE_ID).data * 65536 )
@@ -94,47 +100,53 @@ def parse_cmd(cmd,bp):
 			print('LOCKED      :',b.read(UNIT,LOCK).value())
 			
 		if p[0] == 'measure':
-			aa = 0
-			bb = 0
-			cell = 0
-			if len(p) > 1:
-				cell = eval(p[1])
-				aa = cell
-				bb = cell + 1
-			else:
+			try:
 				aa = 0
-				bb = 4
-			for iter in range(aa,bb):
-				v = '{:.4f}'.format(b.read(iter,VOLTAGE).asvoltage())
-				i = '{:.4f}'.format(b.read(iter,CURRENT).ascurrent())
-				t = '{:.4f}'.format(b.read(iter,TEMPERATURE).astemperature(b.R,b.B))
-				cl = b.read(iter,CHARGEL).data
-				ch = b.read(iter,CHARGEH).data
-				c = '{:.4f}'.format(ascharge(cl + (ch << 16)))
-				mode = b.read(iter,MODE).asmode()
-				err = b.read(iter,ERROR).aserr()
-				print('CELL'+str(iter)+':',v,'V',i,'A',t,'degF',c,'C',mode,err)
+				bb = 0
+				cell = 0
+				if len(p) > 1:
+					cell = eval(p[1])
+					aa = cell
+					bb = cell + 1
+				else:
+					aa = 0
+					bb = 4
+				for iter in range(aa,bb):
+					v = '{:.4f}'.format(b.read(iter,VOLTAGE).asvoltage())
+					i = '{:.4f}'.format(b.read(iter,CURRENT).ascurrent())
+					t = '{:.4f}'.format(b.read(iter,TEMPERATURE).astemperature(b.R,b.B))
+					cl = b.read(iter,CHARGEL).data
+					ch = b.read(iter,CHARGEH).data
+					c = '{:.4f}'.format(ascharge(cl + (ch << 16)))
+					mode = b.read(iter,MODE).asmode()
+					err = b.read(iter,ERROR).aserr()
+					print('CELL'+str(iter)+':',v,'V',i,'A',t,'degF',c,'Coulombs',mode,err)
+			except:
+				print("Invalid Usage.")
 				
 		if p[0] == 'setpoints':
-			aa = 0
-			bb = 0
-			cell = 0
-			if len(p) > 1:
-				cell = eval(p[1])
-				aa = cell
-				bb = cell + 1
-			else:
+			try:
 				aa = 0
-				bb = 4
-			for iter in range(aa,bb):
-				sp = '{:.4f}'.format(b.read(iter,CURRENT_SETPOINT).assetpoint())
-				vh = '{:.4f}'.format(b.read(iter,VOLTAGE_LIMIT_CHG).asvoltage())
-				vl = '{:.4f}'.format(b.read(iter,VOLTAGE_LIMIT_DCHG).asvoltage())
-				ih = '{:.4f}'.format(b.read(iter,CURRENT_LIMIT_CHG).ascurrent())
-				il = '{:.4f}'.format(b.read(iter,CURRENT_LIMIT_DCHG).ascurrent())
-				th = '{:.4f}'.format(b.read(iter,TEMP_LIMIT_CHG).astemperature(b.R,b.B))
-				tl = '{:.4f}'.format(b.read(iter,TEMP_LIMIT_DCHG).astemperature(b.R,b.B))
-				print('CELL'+str(iter)+':',sp,'A',vh,'V',vl,'V',ih,'A',il,'A',th,'degF',tl,'degF')
+				bb = 0
+				cell = 0
+				if len(p) > 1:
+					cell = eval(p[1])
+					aa = cell
+					bb = cell + 1
+				else:
+					aa = 0
+					bb = 4
+				for iter in range(aa,bb):
+					sp = '{:.4f}'.format(b.read(iter,CURRENT_SETPOINT).assetpoint())
+					vh = '{:.4f}'.format(b.read(iter,VOLTAGE_LIMIT_CHG).asvoltage())
+					vl = '{:.4f}'.format(b.read(iter,VOLTAGE_LIMIT_DCHG).asvoltage())
+					ih = '{:.4f}'.format(b.read(iter,CURRENT_LIMIT_CHG).ascurrent())
+					il = '{:.4f}'.format(b.read(iter,CURRENT_LIMIT_DCHG).ascurrent())
+					th = '{:.4f}'.format(b.read(iter,TEMP_LIMIT_CHG).astemperature(b.R,b.B))
+					tl = '{:.4f}'.format(b.read(iter,TEMP_LIMIT_DCHG).astemperature(b.R,b.B))
+					print('CELL'+str(iter)+':',sp,'A setpoint,',vh,'V CHG,',vl,'V DISCHG,',ih,'A CHG,',il,'A DISCHG,',th,'degF CHG,',tl,'degF DISCHG')
+			except:
+				print("Invalid Usage.")
 				
 		if p[0] == 'impedance' and len(p) > 1:
 			try:
@@ -152,27 +164,39 @@ def parse_cmd(cmd,bp):
 				print('Impedance Measurement Could not be taken - check that cell is present')
 				
 		if p[0] == 'charge' and len(p) > 1:
-			cell = int(eval(p[1]))
-			if(len(p) > 2):
-				b.write(cell,CURRENT_SETPOINT,encoder(eval(p[2])).assetpoint())
-			b.write(cell,MODE,MODE_CHARGE)
-			
+			try:
+				cell = int(eval(p[1]))
+				if(len(p) > 2):
+					b.write(cell,CURRENT_SETPOINT,encoder(eval(p[2])).assetpoint())
+				b.write(cell,MODE,MODE_CHARGE)
+			except:
+				print("Invalid Usage.")
+				
 		if p[0] == 'sinewave' and len(p) > 1:
-			cell = int(eval(p[1]))
-			if(len(p) > 2):
-				b.write(UNIT,SINE_FREQ,encoder(eval(p[2])).asfreq())
-			b.write(cell,MODE,MODE_IMPEDANCE)
+			try:
+				cell = int(eval(p[1]))
+				if(len(p) > 2):
+					b.write(UNIT,SINE_FREQ,encoder(eval(p[2])).asfreq())
+				b.write(cell,MODE,MODE_IMPEDANCE)
+			except:
+				print("Invalid Usage.")
 			
 		if p[0] == 'discharge' and len(p) > 1:
-			cell = int(eval(p[1]))
-			if(len(p) > 2):
-				b.write(cell,CURRENT_SETPOINT,encoder(eval(p[2])).assetpoint())
-			b.write(cell,MODE,MODE_DISCHARGE)
+			try:
+				cell = int(eval(p[1]))
+				if(len(p) > 2):
+					b.write(cell,CURRENT_SETPOINT,encoder(eval(p[2])).assetpoint())
+				b.write(cell,MODE,MODE_DISCHARGE)
+			except:
+				print("Invalid Usage.")
 			
 		if p[0] == 'stop':
 			if(len(p) > 1):
-				cell = int(eval(p[1]))
-				b.write(cell,MODE,MODE_STOPPED)
+				try:
+					cell = int(eval(p[1]))
+					b.write(cell,MODE,MODE_STOPPED)
+				except:
+					print("Invalid Usage.")
 			else:
 				b.write(CELL0,MODE,MODE_STOPPED)
 				b.write(CELL1,MODE,MODE_STOPPED)
@@ -181,16 +205,28 @@ def parse_cmd(cmd,bp):
 				
 		if p[0] == 'reset':
 			if(len(p) > 1):
-				cell = int(eval(p[1]))
-				b.write(cell,MODE,MODE_IDLE)
+				try:
+					cell = int(eval(p[1]))
+					b.write(cell,MODE,MODE_IDLE)
+				except:
+					print("Invalid Usage.")
 			else:
 				b.write(CELL0,MODE,MODE_IDLE)
 				b.write(CELL1,MODE,MODE_IDLE)
 				b.write(CELL2,MODE,MODE_IDLE)
 				b.write(CELL3,MODE,MODE_IDLE)
 				
-		if p[0] == 'update' and len(p) > 1:
-			b.bootload(p[1]) #The entire bootload procedure is a library function
+		if p[0] == 'firmware' and len(p) > 1:
+		
+			if p[1] == 'load' and len(p) > 2:
+				b.firmware_bootload(p[2]) #The entire bootload procedure is a library function
+				
+			if p[1] == 'update':
+				b.firmware_update()
+			
+			if p[1] == 'check':
+				ver,filename = b.firmware_check(False) #firmware_check(True) checks AND downloads image
+				print("Latest version is:",ver)
 	
 	else:
 		if bp.batactive == '':
