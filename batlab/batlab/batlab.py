@@ -58,7 +58,7 @@ class batpool:
 				return
 			sleep(0.5)
 			
-	def isready(self):
+	def active_exists(self):
 		if self.batactive == '':
 			log('No Batlab Currently Set As Active')
 			return False
@@ -162,17 +162,46 @@ class packet:
 			if self.write == True:
 				print('Wrote: Cell '+str(self.namespace)+', Addr '+"{0:#4X}".format(self.addr & 0x7F))
 			else:
-				print('Read: Cell '+str(self.namespace)+', Addr '+"{0:#4X}".format(self.addr & 0x7F)+': '+str(self.data))
+				print('Read: Cell '+str(self.namespace)+', Addr '+"{0:#4X}".format(self.addr & 0x7F)+': '+str(self.data))	
+
 ###################################################################################################
 ## encoder class - given value, converts to register data. essentially the opposite of packet class
 ###################################################################################################
 class encoder:
 	def __init__(self,data):
 		self.data = data
-	def assetpoint(self):
-		return int((self.data * 128))
+	def asvoltage(self):
+		return int(self.data * 2**15 / 4.5)
+	def asvcc(self):
+		return  int((2**15 * 4.096)  / self.data)
 	def asfreq(self):
 		return int(self.data / (10000.0 / 256.0))
+	def asioff(self):
+		return int(self.data * 128.0)
+	def assetpoint(self):
+		return int((self.data * 128))
+	def asmagdiv(self):
+		return int(1 - math.log2(self.data))
+	def ascurrent(self):
+		return int(self.data * 2**15 / 4.096)
+	def aschargel(self):
+		return  ((self.data * 9.765625 / 4.096 / 6) * 2**15) & 0xFFFF
+	def aschargeh(self):
+		return  ((self.data * 9.765625 / 4.096 / 6) * 2**15) >> 16
+	def astemperature(self,Rdiv,B):
+		To = 25 + 273.15
+		Ro = 10000
+		F = (self.data - 32) / 1.8
+		F = 1/(F + 273.15)
+		R = math.exp((F - (1 / To)) * B) * Ro
+		if (R > 0 and Rdiv > 0):
+			R = (2**15)/(((1/R)*Rdiv) + 1)
+		else:
+			R = -100 # dummy value
+		return int(R)
+###################################################################################################
+def ascharge(data):
+	return ((6 * (data / 2**15) ) * 4.096 / 9.765625)		
 ###################################################################################################
 ## Holds an instance of 1 Batlab. Pass in a COM port
 ###################################################################################################
@@ -283,9 +312,12 @@ class batlab:
 		if not (namespace in NAMESPACE_LIST):
 			print("Namespace Invalid")
 			return None
-		if value > 65535:
+		if value > 65535 or value < -65535:
 			print("Invalid value: 16 bit value expected")
 			return None
+		if(value & 0x8000): #convert large numbers into negative numbers because the to_bytes call is expecting an int16
+			value = -0x10000 + value
+			
 		try:
 			q = None
 			outctr = 0
@@ -313,17 +345,21 @@ class batlab:
 		except:
 			return None
 ###################################################################################################
+## get_stream - retrieve stream packet from queue
+###################################################################################################
 	def get_stream(self):
 		q = None
 		while self.qstream.qsize() > 0:
 			q = self.qstream.get()
 		return q
 ###################################################################################################
+## Macros
+###################################################################################################
 	def set_current(self,cell,current):
 		self.write(cell,CURRENT_SETPOINT,int((current/5.0)*640))
 	def sn(self):
-		a = self.read(0x04,0x00).data 
-		b = self.read(0x04,0x01).data
+		a = self.read(UNIT,0x00).data 
+		b = self.read(UNIT,0x01).data
 		return a + b*65536
 	def ver(self):
 		return self.read(0x04,0x02).data
@@ -411,43 +447,6 @@ class batlab:
 		else:
 			print("Firmware is up to date.")
 ###################################################################################################
-	def calibration_reset_voltage(self):
-		self.write(UNIT,VOLT_CH_CALIB_OFF,0)
-		self.write(UNIT,VOLT_CH_CALIB_SCA,0x4000)
-		self.write(UNIT,VOLT_DC_CALIB_OFF,0)
-		self.write(UNIT,VOLT_DC_CALIB_SCA,0x4000)
-	def calibration_reset_current(self,cell):
-		self.write(cell,CURRENT_CALIB_OFF,0)
-		self.write(cell,CURRENT_CALIB_SCA,0x4000) #ensures no current correction happens
-		self.write(cell,CURR_LOWV_OFF_SCA,0x7FFF) #default --- this value is assumed and not calibrated.
-		self.write(cell,CURR_LOWV_SCA,0x7FFF)
-		self.write(cell,CURR_LOWV_OFF,0x7FFF)#15838) #default --- if it is left at 0xFFFF it will mess up the calibration
-	def calibration_reset_current_lowv(self,cell):
-		self.write(cell,CURR_LOWV_OFF_SCA,13932) #default --- this value is assumed and not calibrated.
-		self.write(cell,CURR_LOWV_OFF_SCA,0x7FFF) #default --- this value is assumed and not calibrated.
-		self.write(cell,CURR_LOWV_SCA,0x7FFF)
-		self.write(cell,CURR_LOWV_OFF,0)#15838) #default --- if it is left at 0xFFFF it will mess up the calibration
-		self.write(cell,CURRENT_CALIB_OFF,0)
-		self.write(cell,CURRENT_CALIB_SCA,0x4000) #ensures no current correction happens
-	def calibration_reset_current_lowv_sca(self,cell):
-		self.write(cell,CURR_LOWV_OFF_SCA,0)
-	def calibration_reset_temperature(self,cell):
-		self.write(cell,TEMP_CALIB_R,1500)
-		self.R[cell] = 1500
-		self.write(cell,TEMP_CALIB_B,3380)
-		self.B[cell] = 3380
-	def calibration_reset_frequency(self,cell):
-		self.write(cell,CURRENT_CALIB_PP,0x4000)
-		self.write(cell,VOLTAGE_CALIB_PP,0x4000)
-		self.write(cell,CURR_CALIB_PP_OFF,0)
-		self.write(cell,VOLT_CALIB_PP_OFF,0)
-	def calibration_reset_ac_voltage(self,cell):
-		self.write(cell,VOLTAGE_CALIB_PP,0x4000)
-		self.write(cell,VOLT_CALIB_PP_OFF,0)
-	def calibration_reset_ac_current(self,cell):
-		self.write(cell,CURRENT_CALIB_PP,0x4000)
-		self.write(cell,CURR_CALIB_PP_OFF,0)
-###################################################################################################
 ###################################################################################################
 ###################################################################################################
 ## Reading thread - parses incoming packets and adds them to queues
@@ -506,6 +505,7 @@ class batlab:
 ###################################################################################################
 ###################################################################################################
 ###################################################################################################
+## Global Functions
 ###################################################################################################
 def get_ports():
 	portinfos = serial.tools.list_ports.comports()
@@ -517,8 +517,6 @@ def get_ports():
 			log("found Batlab on "+portinfo.device)
 			port.append(portinfo.device)
 	return port
-def ascharge(data):
-	return ((6 * (data / 2**15) ) * 4.096 / 9.765625)
 ###################################################################################################
 '''namespace definitions'''
 CELL0             = 0x00
@@ -633,8 +631,8 @@ LED_RAMP_UP            = 0x0006
 LED_RAMP_DOWN          = 0x0007
 LED_SINE               = 0x0008
 
-LOCK_LOCKED = 0x0001
-LOCK_UNLOCKED = 0x0000
+LOCK_LOCKED            = 0x0001
+LOCK_UNLOCKED          = 0x0000
 
 COMMAND_ERROR          = 257
 ###################################################################################################

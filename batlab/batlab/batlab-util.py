@@ -27,6 +27,8 @@ def parse_cmd(cmd,bp):
 		print(' list                              - list ports and SNs of connected batlabs   ')
 		print(' active (port)                     - set currently active batlab. Or read value')
 		print(' quit                              - Exit the program                          ')
+		print(' help                              - show this help                            ')
+		print(' constants                         - show the register and namespace names     ')
 		print('Active Batlab Commands                                                         ')
 		print(' write [namespace] [addr] [data]   - General Purpose Command for Writing Regs  ')
 		print(' read [namespace] [addr]           - General purpose Command for Reading Regs  ')
@@ -44,6 +46,18 @@ def parse_cmd(cmd,bp):
 		print(' firmware load [firmware bin file] - load firmware update from local bin file  ')
 		print(' firmware update                   - check for firmware update. Load if needed ')
 		print(' firmware check                    - check for firmware update.                ')
+		
+	if p[0] == 'constants':
+		print('NAMESPACE LIST: CELL0, CELL1, CELL2, CELL3, UNIT, BOOTLOADER, COMMS            ')
+		print('CELL REGISTERS: MODE, ERROR, STATUS, CURRENT_SETPOINT, REPORT_INTERVAL         ')
+		print('CELL REGISTERS: TEMPERATURE, CURRENT, VOLTAGE, CHARGEL, CHARGEH                ')
+		print('CELL REGISTERS: VOLTAGE_LIMIT_CHG, VOLTAGE_LIMIT_DCHG, CURRENT_LIMIT_CHG       ')
+		print('CELL REGISTERS: CURRENT_LIMIT_DCHG, TEMP_LIMIT_CHG, TEMP_LIMIT_DCHG            ')
+		print('CELL REGISTERS: CURRENT_PP, VOLTAGE_PP                                         ')
+		print('UNIT REGISTERS: SERIAL_NUM, DEVICE_ID, FIRMEWARE_VER, VCC, SINE_FREQ           ')
+		print('UNIT REGISTERS: SETTINGS, SINE_OFFSET, SINE_MAGDIV, LED_MESSAGE, LOCK          ')
+		print('COMM REGISTERS: LED0, LED1, LED2, LED3, PSU, PSU_VOLTAGE                       ')
+
 		
 	###############################################################################################
 	# FOLLOWING COMMANDS HELP YOU MANAGE THE CONTEXT - The Batlab specific commands only interact 
@@ -75,7 +89,7 @@ def parse_cmd(cmd,bp):
 	###############################################################################################
 	# COMMANDS BELOW THIS LINE REFERENCE THE ACTIVE BATLAB
 	###############################################################################################
-	if bp.isready(): #checks to make sure the bp.batpool[bp.batactive] exists
+	if bp.active_exists(): #checks to make sure the bp.batpool[bp.batactive] exists
 		b = bp.batpool[bp.batactive] #get the active batlab object
 		if p[0] == 'write' and len(p) == 4:
 			try:

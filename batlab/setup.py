@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='batlab',
-      version='0.2.1',
+      version='0.3.0',
       description='Low level library for communication with the Batlab V1.0 Battery Testing System by Lexcelon',
       url='https://github.com/Lexcelon/batlab-software-python',
       author='Lexcelon, LLC',
@@ -10,6 +10,7 @@ setup(name='batlab',
       license='GPL3',
       packages=['batlab'],
       install_requires=['pyserial'],
+	  scripts=['batlab-util'],
       zip_safe=False)
 	  
 	  
