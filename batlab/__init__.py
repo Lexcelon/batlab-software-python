@@ -1,1 +1,2 @@
-from batlab import *
+from .batlab import *
+from .batlabutil import *

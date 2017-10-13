@@ -5,20 +5,20 @@ from time import sleep, ctime, time
 # you more python inclined people would completely re-write this script to be more Pythonic.
 from batlab import * 
 ###################################################################################################
-def main():
+def batlabutil():
 	bp = batpool() # Create the Batpool
 	print('Batlab Utility Script')
-	parse_cmd('help',bp)
+	batlab_parse_cmd('help',bp)
 	while(True):
 		try:
 			while bp.msgqueue.qsize() > 0: #get message from the Batpool message queue
 				print(bp.msgqueue.get()) #These messages relate to Batlab Plug/unplug events
 			cmd = input(">>>").rstrip()
-			parse_cmd(cmd,bp)
+			batlab_parse_cmd(cmd,bp)
 		except KeyboardInterrupt:
 			quit()
 ###################################################################################################
-def parse_cmd(cmd,bp):
+def batlab_parse_cmd(cmd,bp):
 	p = cmd.split()
 	if(not p):
 		return
@@ -249,4 +249,4 @@ def parse_cmd(cmd,bp):
 			print('Batlab on ' + bp.batactive + ' not found')
 ###################################################################################################
 if __name__=="__main__":
-	main()
+	batlabutil()
