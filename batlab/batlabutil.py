@@ -1,12 +1,12 @@
 from time import sleep, ctime, time
-
+from constants import *
 # Import the Batlab class - do it this way so you can use all of the defined constants for register
 # mappings. I know my Python looks like C. I'm an embedded systems guy and I'd love it if some of
 # you more python inclined people would completely re-write this script to be more Pythonic.
-from batlab import * 
+import batlab
 ###################################################################################################
 def batlabutil():
-	bp = batpool() # Create the Batpool
+	bp = batlab.batpool() # Create the Batpool
 	print('Batlab Utility Script')
 	batlab_parse_cmd('help',bp)
 	while(True):
@@ -29,7 +29,12 @@ def batlab_parse_cmd(cmd,bp):
 		print(' quit                              - Exit the program                          ')
 		print(' help                              - show this help                            ')
 		print(' constants                         - show the register and namespace names     ')
-		print('Active Batlab Commands                                                         ')
+		print('Active Batlab Test Commands                                                    ')
+		print(' cycletest [cell] [cellname]       - Start cycle test using loaded settings    ')
+		print(' dischargetest [cell] [cellname]   - Start discharge test using loaded settings')
+		print(' timedtest [cell] [name] (timeout) - Start timed test using loaded settings    ')
+		print(' load settings [settings filename] - Load in test settings from .json file     ')
+		print('Active Batlab Lower-Level Commands                                             ')
 		print(' write [namespace] [addr] [data]   - General Purpose Command for Writing Regs  ')
 		print(' read [namespace] [addr]           - General purpose Command for Reading Regs  ')
 		print('    example: "read UNIT FIRMWARE_VER"                                          ')
@@ -72,9 +77,19 @@ def batlab_parse_cmd(cmd,bp):
 			print('No Batlabs Found')
 		for port,bat in bp.batpool.items():
 			if bp.batactive == port:
-				print(port,bat.sn,'*')
+				print(port,bat.sn,'*Active*',':')
+				for aa in range(0,4):
+					if bat.channel[aa].is_testing():
+						print('    Channel ',aa,': TESTING',bat.channel[aa].name,'Runtime:',bat.channel[aa].runtime())
+					else:
+						print('    Channel ',aa,': IDLE')
 			else:
-				print(port,bat.sn)
+				print(port,bat.sn,':')
+				for aa in range(0,4):
+					if bat.channel[aa].is_testing():
+						print('    Channel ',aa,': TESTING',bat.channel[aa].name,'Runtime:',bat.channel[aa].runtime())
+					else:
+						print('    Channel ',aa,': IDLE')
 				
 	if p[0] == 'active':
 		if len(p) > 1:
@@ -86,6 +101,14 @@ def batlab_parse_cmd(cmd,bp):
 		bp.quit()
 		quit()
 		
+	if p[0] == 'load' and len(p) > 2:
+		if p[1] == 'settings':
+			with open(p[2],'r') as fhandle:
+				bp.settings.load(fhandle)
+				print('Results File will be written to testResults/',bp.settings.logfile)
+				# Print the Header to the CSV file dictated by this settings file
+				logfile_headerstr = '#Settings from ' + p[2] 
+				bp.logger.log(logfile_headerstr,bp.settings.logfile)
 	###############################################################################################
 	# COMMANDS BELOW THIS LINE REFERENCE THE ACTIVE BATLAB
 	###############################################################################################
@@ -129,9 +152,11 @@ def batlab_parse_cmd(cmd,bp):
 					v = '{:.4f}'.format(b.read(iter,VOLTAGE).asvoltage())
 					i = '{:.4f}'.format(b.read(iter,CURRENT).ascurrent())
 					t = '{:.4f}'.format(b.read(iter,TEMPERATURE).astemperature(b.R,b.B))
+					b.write(UNIT,LOCK,LOCK_LOCKED)
 					cl = b.read(iter,CHARGEL).data
 					ch = b.read(iter,CHARGEH).data
-					c = '{:.4f}'.format(ascharge(cl + (ch << 16)))
+					b.write(UNIT,LOCK,LOCK_UNLOCKED)
+					c = '{:.4f}'.format(batlab.ascharge(cl + (ch << 16)))
 					mode = b.read(iter,MODE).asmode()
 					err = b.read(iter,ERROR).aserr()
 					print('CELL'+str(iter)+':',v,'V',i,'A',t,'degF',c,'Coulombs',mode,err)
@@ -165,14 +190,7 @@ def batlab_parse_cmd(cmd,bp):
 		if p[0] == 'impedance' and len(p) > 1:
 			try:
 				cell = eval(p[1])
-				'''start impedance measurment'''
-				b.write(cell,MODE,MODE_IMPEDANCE)
-				sleep(2)
-				'''collect results'''
-				imag = b.read(cell,CURRENT_PP).ascurrent()
-				vmag = b.read(cell,VOLTAGE_PP).asvoltage()
-				z = vmag / imag
-				b.write(cell,MODE,MODE_IDLE)
+				z = b.impedance(cell)
 				print('Impedance:',z,'Ohms')
 			except:
 				print('Impedance Measurement Could not be taken - check that cell is present')
@@ -181,7 +199,7 @@ def batlab_parse_cmd(cmd,bp):
 			try:
 				cell = int(eval(p[1]))
 				if(len(p) > 2):
-					b.write(cell,CURRENT_SETPOINT,encoder(eval(p[2])).assetpoint())
+					b.write(cell,CURRENT_SETPOINT,batlab.encoder(eval(p[2])).assetpoint())
 				b.write(cell,MODE,MODE_CHARGE)
 			except:
 				print("Invalid Usage.")
@@ -190,7 +208,7 @@ def batlab_parse_cmd(cmd,bp):
 			try:
 				cell = int(eval(p[1]))
 				if(len(p) > 2):
-					b.write(UNIT,SINE_FREQ,encoder(eval(p[2])).asfreq())
+					b.write(UNIT,SINE_FREQ,batlab.encoder(eval(p[2])).asfreq())
 				b.write(cell,MODE,MODE_IMPEDANCE)
 			except:
 				print("Invalid Usage.")
@@ -199,7 +217,7 @@ def batlab_parse_cmd(cmd,bp):
 			try:
 				cell = int(eval(p[1]))
 				if(len(p) > 2):
-					b.write(cell,CURRENT_SETPOINT,encoder(eval(p[2])).assetpoint())
+					b.write(cell,CURRENT_SETPOINT,batlab.encoder(eval(p[2])).assetpoint())
 				b.write(cell,MODE,MODE_DISCHARGE)
 			except:
 				print("Invalid Usage.")
@@ -241,6 +259,35 @@ def batlab_parse_cmd(cmd,bp):
 			if p[1] == 'check':
 				ver,filename = b.firmware_check(False) #firmware_check(True) checks AND downloads image
 				print("Latest version is:",ver)
+				
+		if p[0] == 'cycletest' and len(p) > 2:
+			TT_DISCHARGE = 0
+			TT_CYCLE = 1
+			try:
+				if b.channel[cell].is_testing():
+					print("Can't start test - Test is already running on this channel")
+					return
+				cell = int(eval(p[1]))
+				b.channel[cell].start_test(p[2],TT_CYCLE)
+			except:
+				print("Invalid Usage.")
+		
+		if p[0] == 'dischargetest' and len(p) > 2:
+			TT_DISCHARGE = 0
+			TT_CYCLE = 1
+			#try:
+			cell = int(eval(p[1]))
+			if b.channel[cell].is_testing():
+				print("Can't start test - Test is already running on this channel")
+				return
+			if len(p) > 3:
+				timeout = eval(p[3])
+			else:
+				timeout = None
+			b.channel[cell].start_test(p[2],TT_DISCHARGE,timeout)
+			#except:
+			#	print("Invalid Usage.")
+			
 	
 	else:
 		if bp.batactive == '':

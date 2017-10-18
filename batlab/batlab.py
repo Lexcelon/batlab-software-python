@@ -1,4 +1,5 @@
 #clsBatlab
+from constants import *
 import serial
 import serial.tools.list_ports
 from time import sleep, ctime, time
@@ -8,6 +9,7 @@ import queue
 import sys
 import math
 import os
+import json
 try:
 	# For Python 3.0 and later
 	from urllib.request import urlopen
@@ -15,6 +17,9 @@ except ImportError:
 	# Fall back to Python 2's urllib2
 	from urllib2 import urlopen
 import re
+
+import testmgr
+
 ###################################################################################################
 ## Local Functions
 ###################################################################################################
@@ -23,6 +28,87 @@ DEBUG_MODE = None
 def log(str):
 	if DEBUG_MODE:
 		print(str)
+		
+###################################################################################################	
+## Settings class
+###################################################################################################
+class settings:
+
+	def __init__(self):
+		self.jsonsettings = None
+		self.acceptable_impedance_threshold = 1.0
+		self.batlab_toolkit_GUI_version = "1.0.0"
+		self.cell_playlist_name =         "DefaultPlaylist"
+		self.chrg_current_cutoff =        4.096	
+		self.chrg_rate =                  0.5
+		self.chrg_tmp_cutoff =            50	
+		self.dischrg_current_cutoff =     4.096	
+		self.dischrg_rate =               0.5
+		self.dischrg_tmp_cutoff =         80	
+		self.high_volt_cutoff =           4.2
+		self.impedance_period =           15
+		self.low_volt_cutoff =            2.0
+		self.num_meas_cyc =               1
+		self.num_warm_up_cyc =            0
+		self.reporting_period = 		  0.5
+		self.rest_time = 				  60
+		self.sinewave_freq = 			  (10000.0/256.0)
+		self.sinewave_magnitude = 		  2.0
+		self.bool_storage_dischrg = 	  0
+		self.storage_dischrg_volt =       3.8
+		
+		self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
+		
+	def load(self,fhandle):		
+		self.jsonsettings = json.load(fhandle)
+		print(self.jsonsettings)
+		for key,value in self.jsonsettings.items():
+			if key == "acceptableImpedanceThreshold": self.acceptable_impedance_threshold = value
+			if key == "batlabToolkitGUIVersion":      self.batlab_toolkit_GUI_version = value
+			if key == "cellPlaylistName":             self.cell_playlist_name = value	
+			if key == "chargeCurrentSafetyCutoff":    self.chrg_current_cutoff = value	
+			if key == "chargeRate":                   self.chrg_rate = value	
+			if key == "chargeTemperatureCutoff":      self.chrg_tmp_cutoff = value	
+			if key == "dischargeCurrentSafetyCutoff": self.dischrg_current_cutoff = value	
+			if key == "dischargeRate":                self.dischrg_rate = value
+			if key == "dischargeTemperatureCutoff":   self.dischrg_tmp_cutoff = value	
+			if key == "highVoltageCutoff":            self.high_volt_cutoff = value
+			if key == "impedanceReportingPeriod":     self.impedance_period = value
+			if key == "lowVoltageCutoff":             self.low_volt_cutoff = value
+			if key == "numMeasurementCycles":         self.num_meas_cyc = value
+			if key == "numWarmupCycles":              self.num_warm_up_cyc = value
+			if key == "reportingPeriod":              self.reporting_period = value
+			if key == "restPeriod":                   self.rest_time = value
+			if key == "sineWaveFrequency":            self.sinewave_freq = value
+			if key == "sineWaveMagnitude":            self.sinewave_magnitude = value
+			if key == "storageDischarge":             self.bool_storage_dischrg = value
+			if key == "storageDischargeVoltage":      self.storage_dischrg_volt = value
+			
+		self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
+		
+			
+###################################################################################################	
+## logger class 
+###################################################################################################
+class logger:
+	#cell name,batlab name,channel,timestamp,voltage,current,temperature,impedance,energy,charge
+	def __init__(self):
+		self.msgqueue = queue.Queue()
+		thread = threading.Thread(target=self.thd_logger)
+		thread.daemon = True
+		thread.start()
+		
+	def log(self,logstring,filename):
+		self.msgqueue.put([logstring,filename])
+		
+	def thd_logger(self):
+		while(True):
+			while(self.msgqueue.qsize() > 0):
+					q = self.msgqueue.get()
+					logfile = open(q[1],'a+')
+					logfile.write(q[0] + '\n')
+					logfile.close()
+			sleep(0.1)
 ###################################################################################################
 ## batpool class - manage a pool of connected batlabs by maintaining a list of plugged-in systems
 ###################################################################################################
@@ -35,13 +121,15 @@ class batpool:
 		thread = threading.Thread(target=self.batpool_mgr)
 		thread.daemon = True
 		thread.start()
+		self.logger = logger()
+		self.settings = settings()
 		
 	def batpool_mgr(self):
 		while(True):
 			portlist = get_ports()
 			for port in portlist:
 				if port not in self.batpool:
-					self.batpool[port] = batlab(port)
+					self.batpool[port] = batlab(port,self.logger,self.settings)
 					self.msgqueue.put('Batlab on ' + port + ' connected')
 					if self.batactive == '':
 						self.batactive = port
@@ -147,6 +235,15 @@ class packet:
 		T = (1 / Tinv) - 273.15
 		T = (T * 1.8) + 32
 		return T
+	def astemperature_c(self,Rlist,Blist):
+		Rdiv = Rlist[self.namespace]
+		R = Rdiv / ((2**15 / self.data)-1)
+		To = 25 + 273.15
+		Ro = 10000
+		B = Blist[self.namespace] #3380
+		Tinv = (1 / To) + (math.log(R/Ro) / B)
+		T = (1 / Tinv) - 273.15
+		return T
 	def ascurrent(self):
 		if(self.data & 0x8000): #the current can be negative
 			self.data = -0x10000 + self.data
@@ -183,7 +280,7 @@ class encoder:
 	def asmagdiv(self):
 		return int(1 - math.log2(self.data))
 	def ascurrent(self):
-		return int(self.data * 2**15 / 4.096)
+		return int(self.data * (2**15 - 1) / 4.096)
 	def aschargel(self):
 		return  ((self.data * 9.765625 / 4.096 / 6) * 2**15) & 0xFFFF
 	def aschargeh(self):
@@ -191,7 +288,18 @@ class encoder:
 	def astemperature(self,Rdiv,B):
 		To = 25 + 273.15
 		Ro = 10000
-		F = (self.data - 32) / 1.8
+		F = (self.data - 32) / 1.8 #F in this case is the temperature in celsius :)
+		F = 1/(F + 273.15)
+		R = math.exp((F - (1 / To)) * B) * Ro
+		if (R > 0 and Rdiv > 0):
+			R = (2**15)/(((1/R)*Rdiv) + 1)
+		else:
+			R = -100 # dummy value
+		return int(R)
+	def c_astemperature(self,Rdiv,B):
+		To = 25 + 273.15
+		Ro = 10000
+		F = self.data 
 		F = 1/(F + 273.15)
 		R = math.exp((F - (1 / To)) * B) * Ro
 		if (R > 0 and Rdiv > 0):
@@ -201,15 +309,19 @@ class encoder:
 		return int(R)
 ###################################################################################################
 def ascharge(data):
-	return ((6 * (data / 2**15) ) * 4.096 / 9.765625)		
+	return ((6 * (data / 2**15) ) * 4.096 / 9.765625)	
+
+	
+
+	
 ###################################################################################################
 ## Holds an instance of 1 Batlab. Pass in a COM port
 ###################################################################################################
 class batlab:
 ###################################################################################################
-	def __init__(self,port=None):
-		self.sn = '' #deprecated
-		self.ver = '' #deprecated
+	def __init__(self,port=None,logger=None,settings=None):
+		self.sn = ''
+		self.ver = ''
 		self.port = port
 		self.is_open = False
 		self.qstream = queue.Queue()   #Queue of stream packets
@@ -217,7 +329,10 @@ class batlab:
 		self.killevt = threading.Event()
 		self.B = [3380,3380,3380,3380]
 		self.R = [10000,10000,10000,10000]
+		self.logger = logger
+		self.settings = settings
 		self.connect()
+		self.channel = [ testmgr.channel(self,0) , testmgr.channel(self,1) ,  testmgr.channel(self,2) , testmgr.channel(self,3) ]
 ###################################################################################################
 	def connect(self):
 		while True:
@@ -363,6 +478,19 @@ class batlab:
 		return a + b*65536
 	def ver(self):
 		return self.read(0x04,0x02).data
+	def impedance(self,cell):
+		mode = self.read(cell,MODE).data #get previous state
+		'''start impedance measurment'''
+		self.write(cell,MODE,MODE_IMPEDANCE)
+		sleep(2)
+		'''collect results'''
+		self.write(UNIT,LOCK,LOCK_LOCKED)
+		imag = self.read(cell,CURRENT_PP).ascurrent()
+		vmag = self.read(cell,VOLTAGE_PP).asvoltage()
+		self.write(UNIT,LOCK,LOCK_UNLOCKED)
+		z = vmag / imag
+		self.write(cell,MODE,mode) #restore previous state
+		return z
 ###################################################################################################
 	def firmware_bootload(self,filename):
 			'''Check to make sure image is at least the right size'''
@@ -518,121 +646,4 @@ def get_ports():
 			port.append(portinfo.device)
 	return port
 ###################################################################################################
-'''namespace definitions'''
-CELL0             = 0x00
-CELL1             = 0x01
-CELL2             = 0x02
-CELL3             = 0x03
-UNIT              = 0x04
-BOOTLOADER        = 0x05
-COMMS             = 0xFF
-NAMESPACE_LIST = [0x00,0x01,0x02,0x03,0x04,0x05,0xFF]
-'''cell register map'''
-MODE              = 0x00
-ERROR             = 0x01
-STATUS            = 0x02
-CURRENT_SETPOINT  = 0x03
-REPORT_INTERVAL   = 0x04
-TEMPERATURE       = 0x05
-CURRENT           = 0x06
-VOLTAGE           = 0x07
-CHARGEL           = 0x08
-CHARGEH           = 0x09 
-VOLTAGE_LIMIT_CHG = 0x0A
-VOLTAGE_LIMIT_DCHG= 0x0B
-CURRENT_LIMIT_CHG = 0x0C
-CURRENT_LIMIT_DCHG= 0x0D
-TEMP_LIMIT_CHG    = 0x0E
-TEMP_LIMIT_DCHG   = 0x0F
-DUTY              = 0x10
-COMPENSATION      = 0x11
-CURRENT_PP        = 0x12
-VOLTAGE_PP        = 0x13
-CURRENT_CALIB_OFF = 0x14
-CURRENT_CALIB_SCA = 0x15
-TEMP_CALIB_R      = 0x16
-TEMP_CALIB_B      = 0x17
-CURRENT_CALIB_PP  = 0x18
-VOLTAGE_CALIB_PP  = 0x19
-CURR_CALIB_PP_OFF = 0x1A
-VOLT_CALIB_PP_OFF = 0x1B
-CURR_LOWV_SCA     = 0x1C
-CURR_LOWV_OFF     = 0x1D
-CURR_LOWV_OFF_SCA = 0x1E
-
-CELLREG_MAX = 0x1E
-'''unit register map'''
-SERIAL_NUM       =  0x00
-DEVICE_ID        =  0x01
-FIRMWARE_VER     =  0x02
-VCC              =  0x03
-SINE_FREQ        =  0x04
-SYSTEM_TIMER     =  0x05
-SETTINGS         =  0x06
-SINE_OFFSET      =  0x07
-SINE_MAGDIV      =  0x08
-LED_MESSAGE      =  0x09
-BOOTLOAD         =  0x0A
-VOLT_CH_CALIB_OFF = 0x0B
-VOLT_CH_CALIB_SCA = 0x0C
-VOLT_DC_CALIB_OFF = 0x0D
-VOLT_DC_CALIB_SCA = 0x0E
-LOCK              = 0x0F
-ZERO_AMP_THRESH   = 0x10
-
-UNITREG_MAX = 0x10
-'''COMMs register map'''
-LED0             = 0x00
-LED1             = 0x01
-LED2             = 0x02
-LED3             = 0x03
-PSU              = 0x04
-PSU_VOLTAGE      = 0x05
-
-COMMREGS_MAX = 0x05
-'''BOOTLOAD register map'''
-BL_BOOTLOAD      = 0x00
-BL_ADDR          = 0x01
-BL_DATA          = 0x02
-'''register specific codes and defines'''
-MODE_NO_CELL           = 0x0000
-MODE_BACKWARDS         = 0x0001
-MODE_IDLE              = 0x0002
-MODE_CHARGE            = 0x0003
-MODE_DISCHARGE         = 0x0004
-MODE_IMPEDANCE         = 0x0005
-MODE_STOPPED           = 0x0006
-MODE_LIST = ['MODE_NO_CELL','MODE_BACKWARDS','MODE_IDLE','MODE_CHARGE','MODE_DISCHARGE','MODE_IMPEDANCE','MODE_STOPPED']
-ERR_VOLTAGE_LIMIT_CHG  = 0x0001
-ERR_VOLTAGE_LIMIT_DCHG = 0x0002
-ERR_CURRENT_LIMIT_CHG  = 0x0004
-ERR_CURRENT_LIMIT_DCHG = 0x0008
-ERR_TEMP_LIMIT_CHG     = 0x0010
-ERR_TEMP_LIMIT_DCHG    = 0x0020
-ERR_LIST = ['ERR_VOLTAGE_LIMIT_CHG','ERR_VOLTAGE_LIMIT_DCHG','ERR_CURRENT_LIMIT_CHG','ERR_CURRENT_LIMIT_DCHG','ERR_TEMP_LIMIT_CHG','ERR_TEMP_LIMIT_DCHG']
-STAT_VOLTAGE_LIMIT_CHG = 0x0001
-STAT_VOLTAGE_LIMIT_DCHG= 0x0002
-STAT_CURRENT_LIMIT_CHG = 0x0004
-STAT_CURRENT_LIMIT_DCHG= 0x0008
-STAT_TEMP_LIMIT_CHG    = 0x0010
-STAT_TEMP_LIMIT_DCHG   = 0x0020
-STAT_BACKWARDS         = 0x0040
-STAT_NO_CELL           = 0x0080
-SET_TRIM_OUTPUT        = 0x0001
-SET_VCC_COMPENSATION   = 0x0002
-SET_DEBUG              = 0x8000
-LED_OFF                = 0x0000 
-LED_BLIP               = 0x0001
-LED_FLASH_SLOW         = 0x0002
-LED_FLASH_FAST         = 0x0003
-LED_ON                 = 0x0004
-LED_PWM                = 0x0005
-LED_RAMP_UP            = 0x0006
-LED_RAMP_DOWN          = 0x0007
-LED_SINE               = 0x0008
-
-LOCK_LOCKED            = 0x0001
-LOCK_UNLOCKED          = 0x0000
-
-COMMAND_ERROR          = 257
 ###################################################################################################
