@@ -180,7 +180,8 @@ class channel:
 				
 				sleep(self.settings.reporting_period)
 			except:
-				print("Cancelling test due to Connection error with Batlab")
-				self.test_state = TS_IDLE
+				#print("Temporary Communication error...")
+				sleep(2)
+				continue
 				
 
