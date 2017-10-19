@@ -83,11 +83,7 @@ class channel:
 		self.q = 0
 		self.e = 0
 		self.deltat = 0
-		#self.cycle_count = 0
-		#self.num_warm_up_cyc = 0
-		#self.num_meas_cyc = 1
-		#self.bool_storage_dischrg = 1
-		#self.storage_dischrg_volt = 3.8
+		self.current_cycle = 0
 		
 	def end_test(self):
 		#cell name,batlab name,channel,timestamp,voltage,current,temperature,impedance,energy,charge,Ah,Wh,Zavg,deltaT
@@ -152,6 +148,14 @@ class channel:
 					if (datetime.datetime.now() - self.rest_time).total_seconds() > self.settings.rest_time:
 						self.test_state = TS_DISCHARGE
 						self.bat.write(self.slot,MODE,MODE_DISCHARGE)
+						self.current_cycle += 1
+					if self.current_cycle >= (self.settings.num_meas_cyc + self.settings.num_warm_up_cyc):
+						if self.settings.bool_storage_dischrg:
+							self.test_state = TS_POSTDISCHARGE
+							self.bat.write(self.slot,MODE,MODE_DISCHARGE)
+						else:
+							self.test_state = TS_IDLE
+							self.end_test()
 						
 				if self.test_state == TS_DISCHARGE:
 					if self.timeout_time is not None:
@@ -164,7 +168,6 @@ class channel:
 						if self.test_type == TT_DISCHARGE:
 							self.test_state = TS_IDLE
 							self.end_test()
-						
 							
 				if self.test_state == TS_DISCHARGEREST:
 					if (datetime.datetime.now() - self.rest_time).total_seconds() > self.settings.rest_time:
@@ -173,14 +176,16 @@ class channel:
 						
 				if self.test_state == TS_CHARGE:
 					if mode == MODE_STOPPED:
+							self.test_state = TS_CHARGEREST
+							self.rest_time = datetime.datetime.now()
+				
+				if self.test_state == TS_POSTDISCHARGE:
+					if mode == MODE_STOPPED or v < self.settings.storage_dischrg_volt:
 						self.test_state = TS_IDLE
 						self.end_test()
 				
-				#if self.test_state == TS_POSTDISCHARGE:
-				
 				sleep(self.settings.reporting_period)
 			except:
-				#print("Temporary Communication error...")
 				sleep(2)
 				continue
 				
