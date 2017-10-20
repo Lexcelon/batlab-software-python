@@ -7,13 +7,53 @@ own cell testing workflow or enviroment.
 
 Two source files have been provided:
   * batlab.py - The Batlab Library
-  * batlab-util.py - An example script utilizing the library
+  * batlabutil.py - An example script utilizing the library
+  * testmgr.py - Added functionality that adds the concept of a channel that runs a test workflow.
+  * constants.py
 
 ## Batlab API - batlab.py
 
 The Batlab Library allows users to manage connections and read and write 
 commands to a pool of Batlabs connected over a USB interface. 
 
+### settings class
+
+The `settings` class contains information the test manager needs to run tests on a cell. 
+The general usage is that settings will be specified in a JSON settings file and then loaded into
+the program to be used for tests.
+
+Members:
+"acceptableImpedanceThreshold": 
+"batlabToolkitGUIVersion":      
+"cellPlaylistName":             
+"chargeCurrentSafetyCutoff":    
+"chargeRate":                   
+"chargeTemperatureCutoff":      
+"dischargeCurrentSafetyCutoff": 
+"dischargeRate":                
+"dischargeTemperatureCutoff":   
+"highVoltageCutoff":            
+"impedanceReportingPeriod":     
+"lowVoltageCutoff":             
+"numMeasurementCycles":         
+"numWarmupCycles":              
+"reportingPeriod":              
+"restPeriod":                   
+"sineWaveFrequency":            
+"sineWaveMagnitude":            
+"storageDischarge":             
+"storageDischargeVoltage":   
+
+Methods:
+* `load(filehandle)` - loads information contained in a test JSON file into the instance. 
+
+### logger class
+
+Manages access to files for writing test log information.
+
+Methods:
+* `log(logstring,filename)` - writes entry 'logstring' into file 'filename'
+   
 ### batpool class
 
 The `batpool` class spins up a thread that manages connections to 
@@ -31,6 +71,8 @@ Members:
 * `msgqueue` - queue of string messages describing plug-unplug events
 * `batpool` - dictionary of batlab instances by Serial Port Addrs (ie COM5)
 * `batactive` - Serial port of active Batlab
+* `logger` - A logger object that manages access to a log filename
+* `settings` - A settings object that contains test settings imported from a JSON file
 
 Methods:
 * `active_exists()` - Returns True if the Batlab described by the `batactive` port is connected.
@@ -62,6 +104,7 @@ Methods:
 * `asmode()` - represents a mode register value as an enum string
 * `aserr()` - represents error reg bit field as a string of the error flags
 * `astemperature(Rlist,Blist)` - represents temp data as temeprature in F
+* `astemperature_c(Rlist,Blist)` - represents temp data as temeprature in C
   * Rlist - 4 list of 'R' calibration values needed to interpret temp
   * Blist - 4 list of 'B' calibration values needed to interpret temp
 * `ascurrent()` - represents current measurement as float current in Amps
@@ -83,6 +126,7 @@ Methods:
 * `assetpoint()`
 * `asmagdiv()`
 * `astemperature(R,B)` - represents temp data as temeprature in F
+* `c_astemperature(R,B)` - represents temp data as temeprature in F
   * R - 'R' calibration value needed to interpret temp
   * B - 'B' calibration value needed to interpret temp
 * `ascurrent()` - represents current measurement as float current in Amps
@@ -104,6 +148,9 @@ Members:
 * `is_open` - corresponds to pyserial 'is_open'
 * `B` - list of 'B' temeprature calibration constants for each cell
 * `R` - list of 'R' temperature calibration constants for each cell
+* `logger` - logger object that handles file IO.
+* `settings` - Settings object that contains test settings loaded from JSON file
+* `channel[4]` - 4-list of `channel` objects. Each channel can manage a test run on it
 
 Methods:
 
@@ -120,6 +167,7 @@ Methods:
 	function for the Batlab. It returns a 'write' packet
 * `set_current(cell,current in Amps)` - a macro for setting the CURRENT_SETPOINT to
 	a certain current for a given cell
+* `impedance(cell)` - a macro for taking an impedance measurement on a particular cell
 * `firmware_bootload(filename)` - writes the firmware image given by the specified filename to the batlab. This may take a few minutes
 * `firmware_check(flag_download)` - checks GitHub for the latest firmware version, and downloads it if the 'flag_Download' is True. It returns a 2 list: [version,filename]
 * `firmware_update()` - checks if the firmware on the Batlab is outdated, and updates the firmware if it needs updating, This may take several minutes.
@@ -246,6 +294,29 @@ Type 'help' to display the list of commands in the script and how to use them. T
 
 
 
+## Test Manager - testmgr.py
+
+This file provides classes and methods for managing tests with a pool of Batlabs.
+
+### channel class
+
+Represents one slot or 'channel' in a Batlab.
+
+Members:
+* `bat` - the batlab object to which this channel belongs
+* `slot` - integer value of the slot/channel in the Batlab that this object represents
+* `name` - name of the cell currently installed in the slot
+* `test_type` - you can use this to specify a Cycle Test or a simple discharge test
+* `test_state` - state machine variable for test state
+* `settings` - settings object containing the test settings
+
+Methods:
+* `is_testing()` -- bool, returns False if the test_state is IDLE
+* `runtime()` -- time since test started.
+* `start_test(cellname,test_type=None,timeout_time=None)` - initialize the test state machine and start a test on this Batlab channel. First sets the Batlab to the settings in the `settings` data member.
+* `log_lvl2(type)` - logs 'level 2' test data to the log file and resets the voltage and current average and resets the charge counter back to zero.
+
+Note that the test state machine is launched in another thread and continuously runs.
 
 
 

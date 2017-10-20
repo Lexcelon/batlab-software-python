@@ -1,0 +1,22 @@
+{
+    "acceptableImpedanceThreshold": 1.0,
+    "batlabToolkitGUIVersion": "0.0.1",
+    "cellPlaylistName": "TEST1234",
+    "chargeCurrentSafetyCutoff": 4.096,
+    "chargeRate": 0.499,
+    "chargeTemperatureCutoff": 45,
+    "dischargeCurrentSafetyCutoff": 4.096,
+    "dischargeRate": 1.499,
+    "dischargeTemperatureCutoff": 65,
+    "highVoltageCutoff": 4.2,
+    "impedanceReportingPeriod": 120,
+    "lowVoltageCutoff": 2.0,
+    "numMeasurementCycles": 1,
+    "numWarmupCycles": 0,
+    "reportingPeriod": 2.0,
+    "restPeriod": 10,
+    "sineWaveFrequency": 39.0625,
+    "sineWaveMagnitude": 2.0,
+    "storageDischarge": 0,
+    "storageDischargeVoltage": 3.7
+}

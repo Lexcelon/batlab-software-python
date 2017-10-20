@@ -17,7 +17,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(name='batlab',
-      version='0.4.6',
+      version='0.5.0',
       description='Low level library for communication with the Batlab V1.0 Battery Testing System by Lexcelon',
       long_description=long_description,
       url='https://github.com/Lexcelon/batlab-software-python',
