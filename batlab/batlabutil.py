@@ -80,14 +80,14 @@ def batlab_parse_cmd(cmd,bp):
 				print(port,bat.sn,'*Active*',':')
 				for aa in range(0,4):
 					if bat.channel[aa].is_testing():
-						print('    Channel ',aa,': TESTING',bat.channel[aa].name,'Runtime:',bat.channel[aa].runtime())
+						print('    Channel ',aa,': TESTING',bat.channel[aa].name,'Runtime:',bat.channel[aa].runtime(),'State:',bat.channel[aa].state)
 					else:
 						print('    Channel ',aa,': IDLE')
 			else:
 				print(port,bat.sn,':')
 				for aa in range(0,4):
 					if bat.channel[aa].is_testing():
-						print('    Channel ',aa,': TESTING',bat.channel[aa].name,'Runtime:',bat.channel[aa].runtime())
+						print('    Channel ',aa,': TESTING',bat.channel[aa].name,'Runtime:',bat.channel[aa].runtime(),'State:',bat.channel[aa].state)
 					else:
 						print('    Channel ',aa,': IDLE')
 				
@@ -105,9 +105,12 @@ def batlab_parse_cmd(cmd,bp):
 		if p[1] == 'settings':
 			with open(p[2],'r') as fhandle:
 				bp.settings.load(fhandle)
+				fhandle.seek(0) #reset cursor back to beginning of file
 				print('Results File will be written to testResults/',bp.settings.logfile)
 				# Print the Header to the CSV file dictated by this settings file
-				logfile_headerstr = '#Settings from ' + p[2] 
+				logfile_headerstr = '"' + fhandle.read().replace('"','""') + '"' + ',,,,,,,,,,,,,,,,,,'
+				bp.logger.log(logfile_headerstr,bp.settings.logfile)
+				logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s)"
 				bp.logger.log(logfile_headerstr,bp.settings.logfile)
 	###############################################################################################
 	# COMMANDS BELOW THIS LINE REFERENCE THE ACTIVE BATLAB
@@ -264,10 +267,10 @@ def batlab_parse_cmd(cmd,bp):
 			TT_DISCHARGE = 0
 			TT_CYCLE = 1
 			try:
+				cell = int(eval(p[1]))
 				if b.channel[cell].is_testing():
 					print("Can't start test - Test is already running on this channel")
 					return
-				cell = int(eval(p[1]))
 				b.channel[cell].start_test(p[2],TT_CYCLE)
 			except:
 				print("Invalid Usage.")
@@ -275,18 +278,18 @@ def batlab_parse_cmd(cmd,bp):
 		if p[0] == 'dischargetest' and len(p) > 2:
 			TT_DISCHARGE = 0
 			TT_CYCLE = 1
-			#try:
-			cell = int(eval(p[1]))
-			if b.channel[cell].is_testing():
-				print("Can't start test - Test is already running on this channel")
-				return
-			if len(p) > 3:
-				timeout = eval(p[3])
-			else:
-				timeout = None
-			b.channel[cell].start_test(p[2],TT_DISCHARGE,timeout)
-			#except:
-			#	print("Invalid Usage.")
+			try:
+				cell = int(eval(p[1]))
+				if b.channel[cell].is_testing():
+					print("Can't start test - Test is already running on this channel")
+					return
+				if len(p) > 3:
+					timeout = eval(p[3])
+				else:
+					timeout = None
+				b.channel[cell].start_test(p[2],TT_DISCHARGE,timeout)
+			except:
+				print("Invalid Usage.")
 			
 	
 	else:
