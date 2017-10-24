@@ -5,7 +5,7 @@ pool of Batlabs over USB. This tool is designed for hobbyists and more
 advanced users who would like to incorporate the Batlab hardware in their
 own cell testing workflow or enviroment.
 
-Two source files have been provided:
+The following source files have been provided:
   * batlab.py - The Batlab Library
   * batlabutil.py - An example script utilizing the library
   * testmgr.py - Added functionality that adds the concept of a channel that runs a test workflow.
