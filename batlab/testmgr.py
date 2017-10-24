@@ -1,5 +1,5 @@
 #test manager.py
-from constants import *
+from batlab.constants import *
 import batlab
 from time import sleep, ctime, time
 import datetime

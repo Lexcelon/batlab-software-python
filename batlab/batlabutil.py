@@ -1,5 +1,5 @@
 from time import sleep, ctime, time
-from constants import *
+
 # Import the Batlab class - do it this way so you can use all of the defined constants for register
 # mappings. I know my Python looks like C. I'm an embedded systems guy and I'd love it if some of
 # you more python inclined people would completely re-write this script to be more Pythonic.

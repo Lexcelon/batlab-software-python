@@ -1,5 +1,5 @@
 #clsBatlab
-from constants import *
+from batlab.constants import *
 import serial
 import serial.tools.list_ports
 from time import sleep, ctime, time
@@ -18,7 +18,7 @@ except ImportError:
 	from urllib2 import urlopen
 import re
 
-import testmgr
+import batlab.testmgr as testmgr
 
 ###################################################################################################
 ## Local Functions
