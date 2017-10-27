@@ -1,2 +1,11 @@
 *.egg-info
 *__pycache__*
+*.egg
+*.zip
+*.pyc
+build/lib/batlab/__init__.py
+build/lib/batlab/batlab-util.py
+build/lib/batlab/batlab.py
+build/lib/batlab/batlabutil.py
+build/lib/batlab/constants.py
+build/lib/batlab/testmgr.py
