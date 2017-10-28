@@ -30,6 +30,7 @@ def batlab_parse_cmd(cmd,bp):
 		print(' cycletest [cell] [cellname]       - Start cycle test using loaded settings    ')
 		print(' dischargetest [cell] [cellname] (timeout)  - Start disch tst w/ loaded setngs ')
 		print(' load settings [settings filename] - Load in test settings from .json file     ')
+		print(' view settings                     - display current test settings             ')
 		print('Active Batlab Lower-Level Commands                                             ')
 		print(' write [namespace] [addr] [data]   - General Purpose Command for Writing Regs  ')
 		print(' read [namespace] [addr]           - General purpose Command for Reading Regs  ')
@@ -108,6 +109,16 @@ def batlab_parse_cmd(cmd,bp):
 				bp.logger.log(logfile_headerstr,bp.settings.logfile)
 				logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s)"
 				bp.logger.log(logfile_headerstr,bp.settings.logfile)
+	
+	if p[0] == 'view' and len(p) > 1:
+		if p[1] == 'settings':
+			bp.settings.view()
+			
+	if p[0] == 'ignore' and len(p) > 1: #Don't advertise this on help page
+		if p[1] == 'safety':
+			bp.settings.flag_ignore_safety_limits = True
+			print("Test Safety Limits Disabled")
+	
 	###############################################################################################
 	# COMMANDS BELOW THIS LINE REFERENCE THE ACTIVE BATLAB
 	###############################################################################################

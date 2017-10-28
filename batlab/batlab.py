@@ -40,13 +40,13 @@ class settings:
 		self.batlab_toolkit_GUI_version = "1.0.0"
 		self.cell_playlist_name =         "DefaultPlaylist"
 		self.chrg_current_cutoff =        4.096	
-		self.chrg_rate =                  0.5
+		self.chrg_rate =                  2.0
 		self.chrg_tmp_cutoff =            50	
 		self.dischrg_current_cutoff =     4.096	
-		self.dischrg_rate =               0.5
+		self.dischrg_rate =               2.0
 		self.dischrg_tmp_cutoff =         80	
 		self.high_volt_cutoff =           4.2
-		self.impedance_period =           15
+		self.impedance_period =           60
 		self.low_volt_cutoff =            2.0
 		self.num_meas_cyc =               1
 		self.num_warm_up_cyc =            0
@@ -57,34 +57,89 @@ class settings:
 		self.bool_storage_dischrg = 	  0
 		self.storage_dischrg_volt =       3.8
 		
+		self.flag_ignore_safety_limits = False
 		self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
+		
+	def check(self,key,value,min,max,variable):
+		if self.flag_ignore_safety_limits == True:
+			return True
+		if value < min or value > max:
+			print(key,"with value",value,"is not safe for Lipo Cells.")
+			print("Defaulting to",variable)
+			return False
+		return True
 		
 	def load(self,fhandle):		
 		self.jsonsettings = json.load(fhandle)
-		print(self.jsonsettings)
+		#print(self.jsonsettings)
 		for key,value in self.jsonsettings.items():
-			if key == "acceptableImpedanceThreshold": self.acceptable_impedance_threshold = value
-			if key == "batlabToolkitGUIVersion":      self.batlab_toolkit_GUI_version = value
-			if key == "cellPlaylistName":             self.cell_playlist_name = value	
-			if key == "chargeCurrentSafetyCutoff":    self.chrg_current_cutoff = value	
-			if key == "chargeRate":                   self.chrg_rate = value	
-			if key == "chargeTemperatureCutoff":      self.chrg_tmp_cutoff = value	
-			if key == "dischargeCurrentSafetyCutoff": self.dischrg_current_cutoff = value	
-			if key == "dischargeRate":                self.dischrg_rate = value
-			if key == "dischargeTemperatureCutoff":   self.dischrg_tmp_cutoff = value	
-			if key == "highVoltageCutoff":            self.high_volt_cutoff = value
-			if key == "impedanceReportingPeriod":     self.impedance_period = value
-			if key == "lowVoltageCutoff":             self.low_volt_cutoff = value
-			if key == "numMeasurementCycles":         self.num_meas_cyc = value
-			if key == "numWarmupCycles":              self.num_warm_up_cyc = value
-			if key == "reportingPeriod":              self.reporting_period = value
-			if key == "restPeriod":                   self.rest_time = value
-			if key == "sineWaveFrequency":            self.sinewave_freq = value
-			if key == "sineWaveMagnitude":            self.sinewave_magnitude = value
-			if key == "storageDischarge":             self.bool_storage_dischrg = value
-			if key == "storageDischargeVoltage":      self.storage_dischrg_volt = value
+			if key == "acceptableImpedanceThreshold"                  : self.acceptable_impedance_threshold = value
+			if key == "batlabToolkitGUIVersion"                       : self.batlab_toolkit_GUI_version = value
+			if key == "cellPlaylistName"                              : self.cell_playlist_name = value	
+			if key == "chargeCurrentSafetyCutoff"                     : 
+				if self.check(key,value,0,4.096,self.chrg_current_cutoff)  : 
+					self.chrg_current_cutoff = value	
+			if key == "chargeRate"                                    : 
+				if self.check(key,value,0,4.0,self.chrg_rate)			  : 
+					self.chrg_rate = value
+			if key == "chargeTemperatureCutoff"                       : 
+				if self.check(key,value,-60,80,self.chrg_tmp_cutoff)       : 
+					self.chrg_tmp_cutoff = value	
+			if key == "dischargeCurrentSafetyCutoff"                  : 
+				if self.check(key,value,0,4.096,self.dischrg_current_cutoff): 
+					self.dischrg_current_cutoff = value	
+			if key == "dischargeRate"                                 : 
+				if self.check(key,value,0,4.0,self.dischrg_rate)           :
+					self.dischrg_rate = value
+			if key == "dischargeTemperatureCutoff"                    : 
+				if self.check(key,value,-60,80,self.dischrg_tmp_cutoff)    :
+					self.dischrg_tmp_cutoff = value	
+			if key == "highVoltageCutoff"                             : 
+				if self.check(key,value,3.0,4.3,self.high_volt_cutoff)     :
+					self.high_volt_cutoff = value
+			if key == "impedanceReportingPeriod"                      : self.impedance_period = value
+			if key == "lowVoltageCutoff"                              : 
+				if self.check(key,value,2.5,3.5,self.low_volt_cutoff)      :
+					self.low_volt_cutoff = value
+			if key == "numMeasurementCycles"                          : self.num_meas_cyc = value
+			if key == "numWarmupCycles"                               : self.num_warm_up_cyc = value
+			if key == "reportingPeriod"                               : self.reporting_period = value
+			if key == "restPeriod"                                    : self.rest_time = value
+			if key == "sineWaveFrequency"                             : 
+				if self.check(key,value,39.0625,1054.6875,self.sinewave_freq):
+					self.sinewave_freq = value
+			if key == "sineWaveMagnitude"                             : 
+				if self.check(key,value,0,2,self.sinewave_magnitude)       :
+					self.sinewave_magnitude = value
+			if key == "storageDischarge"                              : self.bool_storage_dischrg = value
+			if key == "storageDischargeVoltage"                       : 
+				if self.check(key,value,2.5,4.3,self.storage_dischrg_volt) :
+					self.storage_dischrg_volt = value
 			
 		self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
+		self.view()
+		
+	def view(self): #print out currently loaded settings
+		print("Currently Loaded Test Settings -",self.logfile)
+		print("===========================================================")
+		print("cellPlaylistName             :",self.cell_playlist_name     ) 	
+		print("chargeCurrentSafetyCutoff    :",self.chrg_current_cutoff	   )
+		print("chargeRate                   :",self.chrg_rate 	           )
+		print("chargeTemperatureCutoff      :",self.chrg_tmp_cutoff 	   )
+		print("dischargeCurrentSafetyCutoff :",self.dischrg_current_cutoff )	
+		print("dischargeRate                :",self.dischrg_rate           )
+		print("dischargeTemperatureCutoff   :",self.dischrg_tmp_cutoff 	   )
+		print("highVoltageCutoff            :",self.high_volt_cutoff       )
+		print("impedanceReportingPeriod     :",self.impedance_period       )
+		print("lowVoltageCutoff             :",self.low_volt_cutoff        )
+		print("numMeasurementCycles         :",self.num_meas_cyc           )
+		print("numWarmupCycles              :",self.num_warm_up_cyc        )
+		print("reportingPeriod              :",self.reporting_period       )
+		print("restPeriod                   :",self.rest_time              )
+		print("sineWaveFrequency            :",self.sinewave_freq          )
+		print("sineWaveMagnitude            :",self.sinewave_magnitude     )
+		print("storageDischarge             :",self.bool_storage_dischrg   )
+		print("storageDischargeVoltage      :",self.storage_dischrg_volt   )
 		
 			
 ###################################################################################################	
@@ -209,7 +264,7 @@ class packet:
 		try:
 			return MODE_LIST[self.data]
 		except:
-			return 'MODE_UNKNOWN'
+			return 'MODE_UNKNOWN: ' + str(self.data)
 	def aserr(self):
 		for i in range(0,6):
 			if self.data & (1 << i):
