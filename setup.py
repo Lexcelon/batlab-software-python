@@ -1,7 +1,7 @@
 from setuptools import setup
 from codecs import open
 from os import path
-import pypandoc
+#import pypandoc
 
 #converts markdown to reStructured
 # z = pypandoc.convert('README.md','rst',format='markdown')
