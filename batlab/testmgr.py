@@ -6,6 +6,9 @@ import datetime
 import threading
 import queue
 from copy import deepcopy
+import traceback
+
+
 
 ###################################################################################################
 ## Channel class - represents a slot for a cell in a batlab
@@ -27,7 +30,7 @@ class channel:
 		self.state = 'IDLE'
 		self.timeout_time = None
 		
-		
+		self.critical_section = threading.Lock()
 		thread = threading.Thread(target=self.thd_channel)
 		thread.daemon = True
 		thread.start()
@@ -40,6 +43,11 @@ class channel:
 			
 	def runtime(self):
 		return datetime.datetime.now() - self.start_time
+		
+
+	def end_test(self):
+		self.test_state = TS_IDLE
+		self.bat.write(self.slot,MODE,MODE_STOPPED)
 	
 	def start_test(self,cellname=None,test_type=None,timeout_time=None):
 		self.settings = deepcopy(self.bat.settings)
@@ -49,44 +57,45 @@ class channel:
 		if test_type is not None:
 			self.test_type = test_type
 		self.timeout_time = timeout_time
+		
+		with self.critical_section:
+			'''Initialize the test settings'''
+			self.bat.write(self.slot,MODE,MODE_IDLE)
+			self.bat.write(self.slot,VOLTAGE_LIMIT_CHG,batlab.encoder(self.settings.high_volt_cutoff).asvoltage())
+			self.bat.write(self.slot,VOLTAGE_LIMIT_DCHG,batlab.encoder(self.settings.low_volt_cutoff).asvoltage())
+			self.bat.write(self.slot,CURRENT_LIMIT_CHG,batlab.encoder(self.settings.chrg_current_cutoff).ascurrent())
+			self.bat.write(self.slot,CURRENT_LIMIT_DCHG,batlab.encoder(self.settings.dischrg_current_cutoff).ascurrent())
+			self.bat.write(self.slot,TEMP_LIMIT_CHG,batlab.encoder(self.settings.chrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
+			self.bat.write(self.slot,TEMP_LIMIT_DCHG,batlab.encoder(self.settings.dischrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
+			self.bat.write(self.slot,CHARGEH,0)
+			self.bat.write(self.slot,CHARGEL,0)
 			
-		'''Initialize the test settings'''
-		self.bat.write(self.slot,MODE,MODE_IDLE)
-		self.bat.write(self.slot,VOLTAGE_LIMIT_CHG,batlab.encoder(self.settings.high_volt_cutoff).asvoltage())
-		self.bat.write(self.slot,VOLTAGE_LIMIT_DCHG,batlab.encoder(self.settings.low_volt_cutoff).asvoltage())
-		self.bat.write(self.slot,CURRENT_LIMIT_CHG,batlab.encoder(self.settings.chrg_current_cutoff).ascurrent())
-		self.bat.write(self.slot,CURRENT_LIMIT_DCHG,batlab.encoder(self.settings.dischrg_current_cutoff).ascurrent())
-		self.bat.write(self.slot,TEMP_LIMIT_CHG,batlab.encoder(self.settings.chrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
-		self.bat.write(self.slot,TEMP_LIMIT_DCHG,batlab.encoder(self.settings.dischrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
-		self.bat.write(self.slot,CHARGEH,0)
-		self.bat.write(self.slot,CHARGEL,0)
-		
-		'''Actually start the test'''
-		if(self.test_type == TT_CYCLE):
-			self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.chrg_rate).assetpoint())
-			self.bat.write(self.slot,MODE,MODE_CHARGE)
-			self.test_state = TS_PRECHARGE
-		else: #Simple Discharge Test
-			self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.dischrg_rate).assetpoint())
-			self.bat.write(self.slot,MODE,MODE_DISCHARGE)
-			self.test_state = TS_DISCHARGE
-		
-		'''initialize the control variables'''
-		self.start_time = datetime.datetime.now()
-		self.last_lvl2_time = datetime.datetime.now()
-		self.last_impedance_time = datetime.datetime.now()
-		self.rest_time = datetime.datetime.now()
-		self.vavg = 0
-		self.vcnt = 0
-		self.zavg = 0
-		self.zcnt = 0
-		self.iavg = 0
-		self.icnt = 0
-		self.temperature0 = self.bat.read(self.slot,TEMPERATURE).astemperature_c(self.bat.R,self.bat.B)
-		self.q = 0
-		self.e = 0
-		self.deltat = 0
-		self.current_cycle = 0
+			'''Actually start the test'''
+			if(self.test_type == TT_CYCLE):
+				self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.chrg_rate).assetpoint())
+				self.bat.write(self.slot,MODE,MODE_CHARGE)
+				self.test_state = TS_PRECHARGE
+			else: #Simple Discharge Test
+				self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.dischrg_rate).assetpoint())
+				self.bat.write(self.slot,MODE,MODE_DISCHARGE)
+				self.test_state = TS_DISCHARGE
+			
+			'''initialize the control variables'''
+			self.start_time = datetime.datetime.now()
+			self.last_lvl2_time = datetime.datetime.now()
+			self.last_impedance_time = datetime.datetime.now()
+			self.rest_time = datetime.datetime.now()
+			self.vavg = 0
+			self.vcnt = 0
+			self.zavg = 0
+			self.zcnt = 0
+			self.iavg = 0
+			self.icnt = 0
+			self.temperature0 = self.bat.read(self.slot,TEMPERATURE).astemperature_c(self.bat.R,self.bat.B)
+			self.q = 0
+			self.e = 0
+			self.deltat = 0
+			self.current_cycle = 0
 		
 	def log_lvl2(self,type):
 		#Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s)
@@ -119,6 +128,7 @@ class channel:
 				continue
 			try:
 				self.state = l_test_state[self.test_state]
+				#with self.critical_section:
 				if self.test_state != TS_IDLE:
 					v = self.bat.read(self.slot,VOLTAGE).asvoltage()
 					self.vcnt += 1
@@ -226,6 +236,8 @@ class channel:
 				sleep(self.settings.reporting_period)
 			except:
 				sleep(2)
+				print('Exception on Channel',self.slot,self.name,'...Continuing test')
+				traceback.print_exc()
 				continue
 				
 

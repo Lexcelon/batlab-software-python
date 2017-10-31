@@ -10,6 +10,7 @@ import sys
 import math
 import os
 import json
+import traceback
 try:
 	# For Python 3.0 and later
 	from urllib.request import urlopen
@@ -19,6 +20,7 @@ except ImportError:
 import re
 
 import batlab.testmgr as testmgr
+
 
 ###################################################################################################
 ## Local Functions
@@ -386,13 +388,17 @@ class batlab:
 		self.R = [10000,10000,10000,10000]
 		self.logger = logger
 		self.settings = settings
+		self.critical_write = threading.Lock()
+		self.critical_read = threading.Lock()
 		self.connect()
 		self.channel = [ testmgr.channel(self,0) , testmgr.channel(self,1) ,  testmgr.channel(self,2) , testmgr.channel(self,3) ]
+		
 ###################################################################################################
 	def connect(self):
 		while True:
 			try:
-				self.ser = serial.Serial(None,38400,timeout=1)
+				self.ser = serial.Serial(None,38400,timeout=2,writeTimeout=0)
+				#self.ser.setTimeout(0.15)
 				self.ser.port = self.port
 				self.ser.close()
 				self.ser.open()
@@ -454,28 +460,34 @@ class batlab:
 			print("Namespace Invalid")
 			return None
 		try:
-			q = packet()
-			outctr = 0
-			while(True):
-				self.ser.write((0xAA).to_bytes(1,byteorder='big'))
-				self.ser.write(namespace.to_bytes(1,byteorder='big'))
-				self.ser.write(addr.to_bytes(1,byteorder='big'))
-				self.ser.write((0x00).to_bytes(1,byteorder='big'))
-				self.ser.write((0x00).to_bytes(1,byteorder='big'))
-				self.ser.flush()
-				ctr = 0
-				while(self.qresponse.qsize() == 0 and ctr < 50):
-					sleep(0.001)
-					ctr = ctr + 1
-				while(self.qresponse.qsize() > 0):
-					q = self.qresponse.get()
-				if( (q.addr == addr and q.namespace == namespace) ): #or outctr > 20 ):
-					return q
-				if outctr > 50:
-					q.valid = False
-					return q
-				outctr = outctr + 1
+			with self.critical_read:
+				q = packet()
+				outctr = 0
+				while(True):
+					try:
+						self.ser.write((0xAA).to_bytes(1,byteorder='big'))
+						self.ser.write(namespace.to_bytes(1,byteorder='big'))
+						self.ser.write(addr.to_bytes(1,byteorder='big'))
+						self.ser.write((0x00).to_bytes(1,byteorder='big'))
+						self.ser.write((0x00).to_bytes(1,byteorder='big'))
+						self.ser.flush()
+						ctr = 0
+						while(self.qresponse.qsize() == 0 and ctr < 50):
+							sleep(0.001)
+							ctr = ctr + 1
+						while(self.qresponse.qsize() > 0):
+							q = self.qresponse.get()
+						if( (q.addr == addr and q.namespace == namespace) ): #or outctr > 20 ):
+							return q
+						if outctr > 50:
+							q.valid = False
+							return q
+						outctr = outctr + 1
+					except:
+						#print("Serial Write Timeout")
+						continue
 		except:
+			#traceback.print_exc()
 			return None
 ###################################################################################################
 	def write(self,namespace,addr,value):
@@ -489,30 +501,36 @@ class batlab:
 			value = -0x10000 + value
 			
 		try:
-			q = None
-			outctr = 0
-			namespace = int(namespace)
-			addr = int(addr)
-			value = int(value)
-			while(True):
-				self.ser.write((0xAA).to_bytes(1,byteorder='big'))
-				self.ser.write(namespace.to_bytes(1,byteorder='big'))
-				self.ser.write((addr | 0x80).to_bytes(1,byteorder='big'))
-				self.ser.write(value.to_bytes(2, byteorder='little',signed=True))
-				self.ser.flush()
-				ctr = 0
-				while(self.qresponse.qsize() == 0 and ctr < 50):
-					sleep(0.001)
-					ctr = ctr + 1
-				while(self.qresponse.qsize() > 0):
-					q = self.qresponse.get()
-				if( q.addr == addr and q.namespace == namespace ):
-					return q
-				if( outctr > 20 ):
-					q.valid = False
-					return q
-				outctr = outctr + 1
+			with self.critical_write:
+				q = None
+				outctr = 0
+				namespace = int(namespace)
+				addr = int(addr)
+				value = int(value)
+				while(True):
+					try:
+						self.ser.write((0xAA).to_bytes(1,byteorder='big'))
+						self.ser.write(namespace.to_bytes(1,byteorder='big'))
+						self.ser.write((addr | 0x80).to_bytes(1,byteorder='big'))
+						self.ser.write(value.to_bytes(2, byteorder='little',signed=True))
+						self.ser.flush()
+						ctr = 0
+						while(self.qresponse.qsize() == 0 and ctr < 50):
+							sleep(0.001)
+							ctr = ctr + 1
+						while(self.qresponse.qsize() > 0):
+							q = self.qresponse.get()
+						if( q.addr == addr and q.namespace == namespace ):
+							return q
+						if( outctr > 20 ):
+							q.valid = False
+							return q
+						outctr = outctr + 1
+					except:
+						#print("Serial Write Timeout")
+						continue
 		except:
+			#traceback.print_exc()
 			return None
 ###################################################################################################
 ## get_stream - retrieve stream packet from queue
@@ -544,7 +562,13 @@ class batlab:
 		vmag = self.read(cell,VOLTAGE_PP).asvoltage()
 		self.write(UNIT,LOCK,LOCK_UNLOCKED)
 		z = vmag / imag
-		self.write(cell,MODE,mode) #restore previous state
+		if mode == MODE_DISCHARGE or mode == MODE_CHARGE or mode == MODE_IDLE or mode == MODE_IMPEDANCE or mode == MODE_STOPPED or mode == MODE_NO_CELL or mode == MODE_BACKWARDS:
+			self.write(cell,MODE,mode) #restore previous state
+			nowmode = self.read(cell,MODE)
+			while nowmode == MODE_IMPEDANCE and mode != MODE_IMPEDANCE:
+				self.write(cell,MODE,mode) #restore previous state
+				nowmode = self.read(cell,MODE)
+
 		return z
 ###################################################################################################
 	def firmware_bootload(self,filename):

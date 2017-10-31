@@ -200,6 +200,9 @@ def batlab_parse_cmd(cmd,bp):
 		if p[0] == 'impedance' and len(p) > 1:
 			try:
 				cell = eval(p[1])
+				if b.channel[cell].is_testing():
+					print("Ignoring command - test running on this channel")
+					return
 				z = b.impedance(cell)
 				print('Impedance:',z,'Ohms')
 			except:
@@ -208,6 +211,9 @@ def batlab_parse_cmd(cmd,bp):
 		if p[0] == 'charge' and len(p) > 1:
 			try:
 				cell = int(eval(p[1]))
+				if b.channel[cell].is_testing():
+					print("Ignoring command - test running on this channel")
+					return
 				if(len(p) > 2):
 					b.write(cell,CURRENT_SETPOINT,batlab.encoder(eval(p[2])).assetpoint())
 				b.write(cell,MODE,MODE_CHARGE)
@@ -217,6 +223,9 @@ def batlab_parse_cmd(cmd,bp):
 		if p[0] == 'sinewave' and len(p) > 1:
 			try:
 				cell = int(eval(p[1]))
+				if b.channel[cell].is_testing():
+					print("Ignoring command - test running on this channel")
+					return
 				if(len(p) > 2):
 					b.write(UNIT,SINE_FREQ,batlab.encoder(eval(p[2])).asfreq())
 				b.write(cell,MODE,MODE_IMPEDANCE)
@@ -226,6 +235,9 @@ def batlab_parse_cmd(cmd,bp):
 		if p[0] == 'discharge' and len(p) > 1:
 			try:
 				cell = int(eval(p[1]))
+				if b.channel[cell].is_testing():
+					print("Ignoring command - test running on this channel")
+					return
 				if(len(p) > 2):
 					b.write(cell,CURRENT_SETPOINT,batlab.encoder(eval(p[2])).assetpoint())
 				b.write(cell,MODE,MODE_DISCHARGE)
@@ -237,22 +249,32 @@ def batlab_parse_cmd(cmd,bp):
 				try:
 					cell = int(eval(p[1]))
 					b.write(cell,MODE,MODE_STOPPED)
+					b.channel[cell].end_test()
 				except:
 					print("Invalid Usage.")
 			else:
 				b.write(CELL0,MODE,MODE_STOPPED)
+				b.channel[CELL0].end_test()
 				b.write(CELL1,MODE,MODE_STOPPED)
+				b.channel[CELL1].end_test()
 				b.write(CELL2,MODE,MODE_STOPPED)
+				b.channel[CELL2].end_test()
 				b.write(CELL3,MODE,MODE_STOPPED)
+				b.channel[CELL3].end_test()
 				
 		if p[0] == 'reset':
 			if(len(p) > 1):
 				try:
 					cell = int(eval(p[1]))
+					b.channel[cell].end_test()
 					b.write(cell,MODE,MODE_IDLE)
 				except:
 					print("Invalid Usage.")
 			else:
+				b.channel[CELL0].end_test()
+				b.channel[CELL1].end_test()
+				b.channel[CELL2].end_test()
+				b.channel[CELL3].end_test()
 				b.write(CELL0,MODE,MODE_IDLE)
 				b.write(CELL1,MODE,MODE_IDLE)
 				b.write(CELL2,MODE,MODE_IDLE)
