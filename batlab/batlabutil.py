@@ -191,8 +191,8 @@ def batlab_parse_cmd(cmd,bp):
 					vl = '{:.4f}'.format(b.read(iter,VOLTAGE_LIMIT_DCHG).asvoltage())
 					ih = '{:.4f}'.format(b.read(iter,CURRENT_LIMIT_CHG).ascurrent())
 					il = '{:.4f}'.format(b.read(iter,CURRENT_LIMIT_DCHG).ascurrent())
-					th = '{:.4f}'.format(b.read(iter,TEMP_LIMIT_CHG).astemperature(b.R,b.B))
-					tl = '{:.4f}'.format(b.read(iter,TEMP_LIMIT_DCHG).astemperature(b.R,b.B))
+					th = '{:.1f}'.format(b.read(iter,TEMP_LIMIT_CHG).astemperature(b.R,b.B))
+					tl = '{:.1f}'.format(b.read(iter,TEMP_LIMIT_DCHG).astemperature(b.R,b.B))
 					print('CELL'+str(iter)+':',sp,'A setpoint,',vh,'V CHG,',vl,'V DISCHG,',ih,'A CHG,',il,'A DISCHG,',th,'degF CHG,',tl,'degF DISCHG')
 			except:
 				print("Invalid Usage.")

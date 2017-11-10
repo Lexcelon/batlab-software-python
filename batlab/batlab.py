@@ -49,15 +49,26 @@ class settings:
 		self.dischrg_tmp_cutoff =         80	
 		self.high_volt_cutoff =           4.2
 		self.impedance_period =           60
-		self.low_volt_cutoff =            2.0
+		self.low_volt_cutoff =            2.5
 		self.num_meas_cyc =               1
 		self.num_warm_up_cyc =            0
-		self.reporting_period = 		  0.5
+		self.reporting_period = 		  1
 		self.rest_time = 				  60
 		self.sinewave_freq = 			  (10000.0/256.0)
 		self.sinewave_magnitude = 		  2.0
 		self.bool_storage_dischrg = 	  0
 		self.storage_dischrg_volt =       3.8
+		
+		self.trickle_enable                 = 0
+		self.pulse_enable                   = 0
+		self.trickle_discharge_engage_limit = 4.1
+		self.trickle_charge_engage_limit    = 2.8
+		self.trickle_chrg_rate              = 0.5
+		self.trickle_dischrg_rate           = 0.5
+		self.pulse_discharge_off_time       = 10
+		self.pulse_discharge_on_time        = 60
+		self.pulse_charge_on_time           = 60
+		self.pulse_charge_off_time          = 10
 		
 		self.flag_ignore_safety_limits = False
 		self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
@@ -117,7 +128,18 @@ class settings:
 			if key == "storageDischargeVoltage"                       : 
 				if self.check(key,value,2.5,4.3,self.storage_dischrg_volt) :
 					self.storage_dischrg_volt = value
-			
+					
+			if key == "trickleEnable"                                 : self.trickle_enable = value	
+			if key == "pulseEnable"                                   : self.pulse_enable = value
+			if key == "trickleDischrgEngageVoltage"                   : self.trickle_discharge_engage_limit = value
+			if key == "trickleChrgEngageVoltage"                      : self.trickle_charge_engage_limit = value
+			if key == "trickleChrgRate"                               : self.trickle_chrg_rate = value
+			if key == "trickleDischrgRate"                            : self.trickle_dischrg_rate = value
+			if key == "pulseDischrgOffTime"                           : self.pulse_discharge_off_time = value
+			if key == "pulseDischrgOnTime"                            : self.pulse_discharge_on_time = value	
+			if key == "pulseChrgOnTime"                               : self.pulse_charge_on_time = value
+			if key == "pulseChrgOffTime"                              : self.pulse_charge_off_time = value				
+						
 		self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
 		self.view()
 		
