@@ -128,6 +128,12 @@ class channel:
 	def state_machine_cycletest(self,mode,v):
 ###################################################################################################
 		if self.test_state == TS_PRECHARGE:
+			'''handle feature to trickle charge the cell if close to voltage limit'''
+			if self.settings.trickle_enable == 1:
+				if v > self.settings.trickle_charge_engage_limit and self.trickle_engaged == False:
+					self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.trickle_chrg_rate).assetpoint())
+					self.trickle_engaged = True
+		
 			if mode == MODE_STOPPED:
 				self.log_lvl2("PRECHARGE")
 				self.test_state = TS_CHARGEREST
@@ -176,7 +182,10 @@ class channel:
 					if self.pulse_discharge_off_time == 0:
 						self.pulse_discharge_off_time = datetime.datetime.now()
 					if (datetime.datetime.now() - self.pulse_discharge_off_time).total_seconds() > self.settings.pulse_discharge_off_time and self.settings.pulse_discharge_off_time > 0:
-						self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.dischrg_rate).assetpoint())
+						if self.trickle_engaged == True:
+							self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.trickle_dischrg_rate).assetpoint())
+						else:
+							self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.dischrg_rate).assetpoint())
 						self.pulse_state = True
 						self.pulse_discharge_on_time = datetime.datetime.now()
 					
@@ -228,7 +237,10 @@ class channel:
 					if self.pulse_charge_off_time == 0:
 						self.pulse_charge_off_time = datetime.datetime.now()
 					if (datetime.datetime.now() - self.pulse_discharge_off_time).total_seconds() > self.settings.pulse_charge_off_time and self.settings.pulse_charge_off_time > 0:
-						self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.chrg_rate).assetpoint())
+						if self.trickle_engaged == True:
+							self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.trickle_chrg_rate).assetpoint())
+						else:
+							self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.chrg_rate).assetpoint())
 						self.pulse_state = True
 						self.pulse_charge_on_time = datetime.datetime.now()
 			

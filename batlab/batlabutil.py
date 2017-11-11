@@ -235,9 +235,9 @@ def batlab_parse_cmd(cmd,bp):
 		if p[0] == 'discharge' and len(p) > 1:
 			try:
 				cell = int(eval(p[1]))
-				if b.channel[cell].is_testing():
-					print("Ignoring command - test running on this channel")
-					return
+				#if b.channel[cell].is_testing():
+				#	print("Ignoring command - test running on this channel")
+				#	return
 				if(len(p) > 2):
 					b.write(cell,CURRENT_SETPOINT,batlab.encoder(eval(p[2])).assetpoint())
 				b.write(cell,MODE,MODE_DISCHARGE)
