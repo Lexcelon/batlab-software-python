@@ -25,7 +25,7 @@ run tests on a cell. The general usage is that settings will be
 specified in a JSON settings file and then loaded into the program to be
 used for tests.
 
-| Members: "acceptableImpedanceThreshold": "batlabToolkitGUIVersion":
+| Members: "acceptableImpedanceThreshold": "batlabCellPlaylistFileVersion":
 | "cellPlaylistName":
 | "chargeCurrentSafetyCutoff":
 | "chargeRate":

@@ -1,6 +1,6 @@
 {
     "acceptableImpedanceThreshold": 0.2,
-    "batlabToolkitGUIVersion": "0.0.1",
+    "batlabCellPlaylistFileVersion": "0.0.1",
     "cellNames": [
         "My-Cell_0987",
         "My-Cell_0988",

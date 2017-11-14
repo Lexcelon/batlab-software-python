@@ -39,7 +39,7 @@ class settings:
 	def __init__(self):
 		self.jsonsettings = None
 		self.acceptable_impedance_threshold = 1.0
-		self.batlab_toolkit_GUI_version = "1.0.0"
+		self.batlab_cell_playlist_file_version = "0.0.1"
 		self.cell_playlist_name =         "DefaultPlaylist"
 		self.chrg_current_cutoff =        4.096	
 		self.chrg_rate =                  2.0
@@ -87,7 +87,7 @@ class settings:
 		#print(self.jsonsettings)
 		for key,value in self.jsonsettings.items():
 			if key == "acceptableImpedanceThreshold"                  : self.acceptable_impedance_threshold = value
-			if key == "batlabToolkitGUIVersion"                       : self.batlab_toolkit_GUI_version = value
+			if key == "batlabCellPlaylistFileVersion"                       : self.batlab_cell_playlist_file_version = value
 			if key == "cellPlaylistName"                              : self.cell_playlist_name = value	
 			if key == "chargeCurrentSafetyCutoff"                     : 
 				if self.check(key,value,0,4.096,self.chrg_current_cutoff)  : 

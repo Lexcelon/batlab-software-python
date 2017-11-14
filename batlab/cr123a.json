@@ -1,6 +1,6 @@
 {
     "acceptableImpedanceThreshold": 1.0,
-    "batlabToolkitGUIVersion": "0.0.1",
+    "batlabCellPlaylistFileVersion": "0.0.1",
     "cellPlaylistName": "CR123ASentrilock",
     "chargeCurrentSafetyCutoff": 4.096,
     "chargeRate": 0,

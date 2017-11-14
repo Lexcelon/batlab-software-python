@@ -24,7 +24,7 @@ the program to be used for tests.
 
 Members:
 "acceptableImpedanceThreshold": 
-"batlabToolkitGUIVersion":      
+"batlabCellPlaylistFileVersion":      
 "cellPlaylistName":             
 "chargeCurrentSafetyCutoff":    
 "chargeRate":                   
