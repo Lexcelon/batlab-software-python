@@ -9,7 +9,7 @@ deploy:
   provider: pypi
   user: stephenrparsons
   password:
-    secure: 
+    secure:
   distributions: "sdist bdist_wheel"
   on:
     tags: true
