@@ -1,0 +1,15 @@
+language: python
+python:
+  - '2.7'
+  - '3.6'
+script:
+  python setup.py sdist
+  python setup.py test
+deploy:
+  provider: pypi
+  user: stephenrparsons
+  password:
+    secure: 
+  distributions: "sdist bdist_wheel"
+  on:
+    tags: true
