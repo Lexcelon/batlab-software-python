@@ -1,14 +1,18 @@
 #test manager.py
-from batlab.constants import *
+from .constants import *
 import batlab
 from time import sleep, ctime, time
 import datetime
 import threading
-import queue
 from copy import deepcopy
 import traceback
+import sys
 
-
+is_py2 = sys.version[0] == '2'
+if is_py2:
+        import Queue as queue
+else:
+        import queue as queue
 
 ###################################################################################################
 ## Channel class - represents a slot for a cell in a batlab

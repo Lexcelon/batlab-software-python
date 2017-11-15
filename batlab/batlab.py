@@ -1,11 +1,11 @@
 #clsBatlab
-from batlab.constants import *
+from .constants import *
+from .testmgr import *
 import serial
 import serial.tools.list_ports
 from time import sleep, ctime, time
 import datetime
 import threading
-import queue
 import sys
 import math
 import os
@@ -19,7 +19,11 @@ except ImportError:
 	from urllib2 import urlopen
 import re
 
-import batlab.testmgr as testmgr
+is_py2 = sys.version[0] == '2'
+if is_py2:
+        import Queue as queue
+else:
+        import queue as queue
 
 
 ###################################################################################################
