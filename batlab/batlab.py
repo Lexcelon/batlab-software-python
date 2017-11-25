@@ -417,7 +417,7 @@ class batlab:
 		self.critical_write = threading.Lock()
 		self.critical_read = threading.Lock()
 		self.connect()
-		self.channel = [ testmgr.channel(self,0) , testmgr.channel(self,1) ,  testmgr.channel(self,2) , testmgr.channel(self,3) ]
+		self.channel = [ channel(self,0) , channel(self,1) ,  channel(self,2) , channel(self,3) ]
 		
 ###################################################################################################
 	def connect(self):
