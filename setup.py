@@ -20,6 +20,7 @@ setup(name='batlab',
               'batlabutil = batlab.batlabutil:batlabutil',
           ],
       },
+      test_suite='tests.batlab_tests',
       zip_safe=False)
 
 #example based on 
