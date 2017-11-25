@@ -2,7 +2,7 @@ language: python
 python:
   - '2.7'
   - '3.6'
-before_script:
+before_deploy:
   - sudo apt-get install -y pandoc
   - pandoc --from=markdown --to=rst --output=README.rst README.md
   - cat README.rst
