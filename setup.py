@@ -14,7 +14,7 @@ setup(name='batlab',
 
       license='LGPL3',
       packages=['batlab'],
-      install_requires=['pyserial'],
+      install_requires=['pyserial', 'future'],
       entry_points={
           'console_scripts': [
               'batlabutil = batlab.batlabutil:batlabutil',
