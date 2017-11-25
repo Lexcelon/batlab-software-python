@@ -2,11 +2,10 @@ language: python
 python:
   - '2.7'
   - '3.6'
-before_deploy:
+script:
   - sudo apt-get install -y pandoc
   - pandoc --from=markdown --to=rst --output=README.rst README.md
   - cat README.rst
-script:
   - python setup.py sdist
   - python setup.py test
 deploy:
@@ -15,5 +14,7 @@ deploy:
   password:
     secure: "KueKnO1UKMmRdH7DQWAdKYW887Na8PtdWK9eaa/HAAPcbUIlhbzgw7O6tIts7ayUOXqnxs+79IXwKLpfhqOFjOWUdrAbUBesf5V13tpBnQNYYMAgB21PqRfke3yZezai1cneILcJDOCAs8du50HRDgUooUNz21s0LOJv+24JGSsRUtOdNo12t3vZ83vJYyt0hfqxXe4+TkNSiDNZKrrCJ27Fs+QMVhvDr2kGoEqCi0SyFF8kOrsE493oQEsmxJyPkbMBg7TMImOfiu4X92/bVFQPRMpX7JUnQs7MVnrD4fv3MOtXlNZETFrGSfjGTXjfNueUtLWzsKp6iqxeqnq4q0UOiN9EXJ3Vfts8ld9RG6Rx4pUpOC93RJlgucrettCZRijgeZMXxXCH6DdfN7sbircUb6etVMFMnm+LAxK6xIjDcMG7VQ3rwFER92LMLBjyccP3hMB893ZcY0+M8xntOdSUXj2ux2MlAL5jCSZoYMCHvXzP7TF9bECcGmdlj8NPXFQTLCkRbJMWpo7xpdOWT2lyYBHr9TBTDVhGQyCLPOs5RiSAozPOQWgiAY4pCuo9HMerPSy3ym7zKeY/bRCm8lyu2/srESPRh88+AICghiXFuyh+uTIppZrw4kQ+zoIUxzplS59tq9swuxeuKcr2vIaIzWTWiMxRHZt1TzMEIzU="
   distributions: "sdist bdist_wheel"
+  # Needed to keep the auto-generated README.rst
+  skip_cleanup: true
   on:
     tags: true
