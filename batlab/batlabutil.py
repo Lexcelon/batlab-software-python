@@ -1,5 +1,7 @@
 from time import sleep, ctime, time
-from batlab.constants import *
+from builtins import input
+
+from .constants import *
 import batlab
 ###################################################################################################
 def batlabutil():

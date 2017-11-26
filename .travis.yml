@@ -3,12 +3,8 @@ python:
   - '2.7'
   - '3.6'
 script:
-  - sudo apt-get install -y pandoc
   - python setup.py sdist
   - python setup.py test
-after_script:
-  - pandoc --from=markdown --to=rst --output=README.rst README.md
-  - cat README.rst
 deploy:
   provider: pypi
   user: stephenrparsons

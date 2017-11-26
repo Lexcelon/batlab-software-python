@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='batlab',
-      version='0.5.4',
+      version='0.5.12',
       description='Low level library for communication with the Batlab V1.0 Battery Testing System by Lexcelon',
       long_description=readme(),
       url='https://github.com/Lexcelon/batlab-software-python',
@@ -14,7 +14,7 @@ setup(name='batlab',
 
       license='LGPL3',
       packages=['batlab'],
-      install_requires=['pyserial'],
+      install_requires=['pyserial', 'future'],
       entry_points={
           'console_scripts': [
               'batlabutil = batlab.batlabutil:batlabutil',
