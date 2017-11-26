@@ -2,24 +2,19 @@ from batlab.constants import *
 from batlab import channel, packet
 
 import serial
-import serial.tools.list_ports
-from time import sleep, ctime, time
+from time import sleep
 import datetime
-import sys
-import math
 import os
-import json
-import traceback
 import re
 import logging
 import threading
 
-is_python2 = sys.version[0] == '2'
-
-if is_python2:
+try:
+    # Python 2.x
     import Queue as queue
     from urllib2 import urlopen
-else:
+except ImportError:
+    # Python 3.x
     import queue as queue
     from urllib.request import urlopen
 
@@ -33,8 +28,8 @@ class Batlab:
         self.ver = ''
         self.port = port
         self.is_open = False
-        self.qstream = queue.Queue()   #Queue of stream packets
-        self.qresponse = queue.Queue() #Queue of response packets
+        self.qstream = queue.Queue() # Queue of stream packets
+        self.qresponse = queue.Queue() # Queue of response packets
         self.killevt = threading.Event()
         self.B = [3380,3380,3380,3380]
         self.R = [10000,10000,10000,10000]
@@ -301,11 +296,11 @@ class Batlab:
                     p.timestamp = datetime.datetime.now()
                     p.type = 'RESPONSE'
                     p.namespace = inbuf[0]
-                    if((inbuf[1] & 0x80)):       #Command Response Byte 3:  w/~r + addr
+                    if((inbuf[1] & 0x80)): #Command Response Byte 3:  w/~r + addr
                         p.write = True
                     p.addr = inbuf[1] & 0x7F
-                    p.data = inbuf[2] + inbuf[3]*256  #data payload
-                    self.qresponse.put(p)                     #Add the packet to the queue
+                    p.data = inbuf[2] + inbuf[3]*256 #data payload
+                    self.qresponse.put(p) #Add the packet to the queue
                     p.print_packet()
                 elif(byte == 0xAF): #stream packet Byte 1: 0xAF
                     while len(inbuf) < 12 and ctr < 20:
@@ -324,7 +319,7 @@ class Batlab:
                         p.temp = inbuf[6] + inbuf[7] * 256
                         p.current = inbuf[8] + inbuf[9] * 256
                         p.voltage = inbuf[10] + inbuf[11] * 256
-                    self.qstream.put(p)                     #Add the packet to the queue
+                    self.qstream.put(p) #Add the packet to the queue
                     p.print_packet()
                 else:
                     logging.warning("<<thdBatlab:Packet Loss Detected>>")

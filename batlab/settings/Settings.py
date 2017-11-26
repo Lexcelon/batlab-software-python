@@ -126,7 +126,7 @@ class Settings:
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
         self.view()
 
-    def view(self): #print out currently loaded settings
+    def view(self): # print out currently loaded settings
         print("Currently Loaded Test Settings -",self.logfile)
         print("===========================================================")
         print("cellPlaylistName             :",self.cell_playlist_name     )

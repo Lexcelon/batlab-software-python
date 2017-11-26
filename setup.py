@@ -23,7 +23,7 @@ setup(name='batlab',
       test_suite='tests.batlab_tests',
       zip_safe=False)
 
-#example based on 
+#example based on
 #https://python-packaging.readthedocs.io/en/latest/minimal.html
 #and
 #http://marthall.github.io/blog/how-to-package-a-python-app/
