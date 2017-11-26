@@ -60,54 +60,53 @@ class Channel:
             self.test_type = test_type
         self.timeout_time = timeout_time
 
-        with self.critical_section:
-            # Initialize the test settings
-            self.bat.write(self.slot,MODE,MODE_IDLE)
-            self.bat.write(self.slot,VOLTAGE_LIMIT_CHG,batlab.encoder(self.settings.high_volt_cutoff).asvoltage())
-            self.bat.write(self.slot,VOLTAGE_LIMIT_DCHG,batlab.encoder(self.settings.low_volt_cutoff).asvoltage())
-            self.bat.write(self.slot,CURRENT_LIMIT_CHG,batlab.encoder(self.settings.chrg_current_cutoff).ascurrent())
-            self.bat.write(self.slot,CURRENT_LIMIT_DCHG,batlab.encoder(self.settings.dischrg_current_cutoff).ascurrent())
-            self.bat.write(self.slot,TEMP_LIMIT_CHG,batlab.encoder(self.settings.chrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
-            self.bat.write(self.slot,TEMP_LIMIT_DCHG,batlab.encoder(self.settings.dischrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
-            self.bat.write(self.slot,CHARGEH,0)
-            self.bat.write(self.slot,CHARGEL,0)
+        # Initialize the test settings
+        self.bat.write(self.slot,MODE,MODE_IDLE)
+        self.bat.write(self.slot,VOLTAGE_LIMIT_CHG,batlab.encoder(self.settings.high_volt_cutoff).asvoltage())
+        self.bat.write(self.slot,VOLTAGE_LIMIT_DCHG,batlab.encoder(self.settings.low_volt_cutoff).asvoltage())
+        self.bat.write(self.slot,CURRENT_LIMIT_CHG,batlab.encoder(self.settings.chrg_current_cutoff).ascurrent())
+        self.bat.write(self.slot,CURRENT_LIMIT_DCHG,batlab.encoder(self.settings.dischrg_current_cutoff).ascurrent())
+        self.bat.write(self.slot,TEMP_LIMIT_CHG,batlab.encoder(self.settings.chrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
+        self.bat.write(self.slot,TEMP_LIMIT_DCHG,batlab.encoder(self.settings.dischrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
+        self.bat.write(self.slot,CHARGEH,0)
+        self.bat.write(self.slot,CHARGEL,0)
 
-            # Actually start the test
-            if(self.test_type == TT_CYCLE):
-                self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.chrg_rate).assetpoint())
-                self.bat.write(self.slot,MODE,MODE_CHARGE)
-                self.test_state = TS_PRECHARGE
-            else: # Simple Discharge Test
-                self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.dischrg_rate).assetpoint())
-                self.bat.write(self.slot,MODE,MODE_DISCHARGE)
-                self.test_state = TS_DISCHARGE
+        # Actually start the test
+        if(self.test_type == TT_CYCLE):
+            self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.chrg_rate).assetpoint())
+            self.bat.write(self.slot,MODE,MODE_CHARGE)
+            self.test_state = TS_PRECHARGE
+        else: # Simple Discharge Test
+            self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.dischrg_rate).assetpoint())
+            self.bat.write(self.slot,MODE,MODE_DISCHARGE)
+            self.test_state = TS_DISCHARGE
 
-            # Initialize the control variables
-            self.start_time = datetime.datetime.now()
-            self.last_lvl2_time = datetime.datetime.now()
-            self.last_impedance_time = datetime.datetime.now()
-            self.rest_time = datetime.datetime.now()
-            self.vavg = 0
-            self.vcnt = 0
-            self.zavg = 0
-            self.zcnt = 0
-            self.iavg = 0
-            self.icnt = 0
-            self.temperature0 = self.bat.read(self.slot,TEMPERATURE).astemperature_c(self.bat.R,self.bat.B)
-            self.q = 0
-            self.e = 0
-            self.deltat = 0
-            self.current_cycle = 0
+        # Initialize the control variables
+        self.start_time = datetime.datetime.now()
+        self.last_lvl2_time = datetime.datetime.now()
+        self.last_impedance_time = datetime.datetime.now()
+        self.rest_time = datetime.datetime.now()
+        self.vavg = 0
+        self.vcnt = 0
+        self.zavg = 0
+        self.zcnt = 0
+        self.iavg = 0
+        self.icnt = 0
+        self.temperature0 = self.bat.read(self.slot,TEMPERATURE).astemperature_c(self.bat.R,self.bat.B)
+        self.q = 0
+        self.e = 0
+        self.deltat = 0
+        self.current_cycle = 0
 
-            # control variables for pulse discharge test
-            self.pulse_discharge_on_time = 0
-            self.pulse_discharge_off_time = 0
-            self.pulse_charge_on_time = 0
-            self.pulse_charge_off_time = 0
-            self.pulse_state = True
+        # control variables for pulse discharge test
+        self.pulse_discharge_on_time = 0
+        self.pulse_discharge_off_time = 0
+        self.pulse_charge_on_time = 0
+        self.pulse_charge_off_time = 0
+        self.pulse_state = True
 
-            # control variables for trickle charge/discharge at voltage limits
-            self.trickle_engaged = False
+        # control variables for trickle charge/discharge at voltage limits
+        self.trickle_engaged = False
 
 
     def log_lvl2(self,type):
@@ -176,7 +175,7 @@ class Channel:
                     if self.pulse_discharge_on_time == 0:
                         self.pulse_discharge_on_time = datetime.datetime.now()
                     if (datetime.datetime.now() - self.pulse_discharge_on_time).total_seconds() > self.settings.pulse_discharge_on_time and self.settings.pulse_discharge_on_time > 0:
-                        self.bat.write(self.slot,CURRENT_SETPOINT,0) # set the current setpoint to zero - still in the discharge state, but 0 current
+                        self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.pulse_discharge_off_rate).assetpoint())
                         self.pulse_state = False
                         self.pulse_discharge_off_time = datetime.datetime.now()
                 else:
@@ -229,13 +228,13 @@ class Channel:
                     if self.pulse_charge_on_time == 0:
                         self.pulse_charge_on_time = datetime.datetime.now()
                     if (datetime.datetime.now() - self.pulse_charge_on_time).total_seconds() > self.settings.pulse_charge_on_time and self.settings.pulse_charge_on_time > 0:
-                        self.bat.write(self.slot,CURRENT_SETPOINT,0) #set the current setpoint to zero - still in the discharge state, but 0 current
+                        self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.pulse_charge_off_rate).assetpoint())
                         self.pulse_state = False
                         self.pulse_charge_off_time = datetime.datetime.now()
                 else:
                     if self.pulse_charge_off_time == 0:
                         self.pulse_charge_off_time = datetime.datetime.now()
-                    if (datetime.datetime.now() - self.pulse_discharge_off_time).total_seconds() > self.settings.pulse_charge_off_time and self.settings.pulse_charge_off_time > 0:
+                    if (datetime.datetime.now() - self.pulse_charge_off_time).total_seconds() > self.settings.pulse_charge_off_time and self.settings.pulse_charge_off_time > 0:
                         if self.trickle_engaged == True:
                             self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.trickle_chrg_rate).assetpoint())
                         else:
@@ -282,45 +281,77 @@ class Channel:
                 continue
             try:
                 self.state = l_test_state[self.test_state]
-                # with self.critical_section:
-                if self.test_state != TS_IDLE:
-                    # take the measurements
-                    v = self.bat.read(self.slot,VOLTAGE).asvoltage()
-                    self.vcnt += 1
-                    self.vavg += (v - self.vavg) / self.vcnt
+                ts = datetime.datetime.now()
+                
+                
+                with self.bat.critical_section:
+                    #patch for current compensation problem in firmware versions <= 3
+                    #fix is to move the current compensation control loop to software and turn it off in hardware.
+                    mode = self.bat.read(self.slot,MODE).asmode()
                     i = self.bat.read(self.slot,CURRENT).ascurrent()
-                    self.icnt += 1
-                    self.iavg += (i - self.iavg) / self.icnt
-                    t = self.bat.read(self.slot,TEMPERATURE).astemperature_c(self.bat.R,self.bat.B)
-                    self.bat.write(UNIT,LOCK,LOCK_LOCKED)
-                    q = self.bat.read(self.slot,CHARGEH).data * 65536 + self.bat.read(self.slot,CHARGEL).data
-                    q = batlab.ascharge(q)
-                    self.bat.write(UNIT,LOCK,LOCK_UNLOCKED)
-                    e = q * self.vavg
-                    mode = self.bat.read(self.slot,MODE).data
-                    err = self.bat.read(self.slot,ERROR).data
-                    ts = datetime.datetime.now()
-                    self.q = q
-                    self.e = e
-                    self.deltat = t - self.temperature0
-                    state = l_test_state[self.test_state]
+                    p = self.bat.read(self.slot,CURRENT_SETPOINT)
+                    op = p.assetpoint() # actual operating point
+                    op_raw = p.data
+                    sp_raw = self.bat.setpoints[self.slot] #current setpoint
+                    sp = sp_raw / 128.0
+                    if mode == 'MODE_CHARGE' or mode == 'MODE_DISCHARGE':
+                        #print(mode,self.slot,i,op,sp)
+                        if i > 0 and sp > 0.5:
+                            if i < (sp - 0.01):
+                                op_raw += 1
+                            elif i > (sp + 0.01):
+                                op_raw -= 1
+                        if i > 4.02:
+                            op_raw -= 1
+                        if sp > 4.5:
+                            op_raw = 575    
+                        # writes to the firmware setpoitn will update the software setpoint, so we need to restore the software setpoint after we write 
+                        self.bat.write(self.slot,CURRENT_SETPOINT,op_raw)
+                        self.bat.setpoints[self.slot] = sp_raw
 
-                    # log the results
-                    if (ts - self.last_impedance_time).total_seconds() > self.settings.impedance_period and self.settings.impedance_period > 0 and self.trickle_engaged == False:
-                        z = self.bat.impedance(self.slot)
-                        self.last_impedance_time = datetime.datetime.now()
-                        self.zcnt += 1
-                        self.zavg += (z - self.zavg) / self.zcnt
-                        logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,'
-                    else:
-                        logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,'
-                    self.bat.logger.log(logstr,self.settings.logfile)
+                    # actual test manager stuff --- take measurements and control test state machine 
+                    if self.test_state != TS_IDLE:
+                        # take the measurements
+                        v = self.bat.read(self.slot,VOLTAGE).asvoltage()
+                        self.vcnt += 1
+                        self.vavg += (v - self.vavg) / self.vcnt
+                        i = self.bat.read(self.slot,CURRENT).ascurrent()
+                        self.icnt += 1
+                        self.iavg += (i - self.iavg) / self.icnt
+                        t = self.bat.read(self.slot,TEMPERATURE).astemperature_c(self.bat.R,self.bat.B)
+                        self.bat.write(UNIT,LOCK,LOCK_LOCKED)
+                        q = self.bat.read(self.slot,CHARGEH).data * 65536 + self.bat.read(self.slot,CHARGEL).data
+                        q = batlab.ascharge(q)
+                        self.bat.write(UNIT,LOCK,LOCK_UNLOCKED)
+                        e = q * self.vavg
+                        mode = self.bat.read(self.slot,MODE).data
+                        err = self.bat.read(self.slot,ERROR).data
 
-                    # actually run the test state machine - decides what to do next
-                    self.state_machine_cycletest(mode,v)
+                        self.q = q
+                        self.e = e
+                        self.deltat = t - self.temperature0
+                        state = l_test_state[self.test_state]
+
+                        # log the results
+                        if (ts - self.last_impedance_time).total_seconds() > self.settings.impedance_period and self.settings.impedance_period > 0 and self.trickle_engaged == False:
+                            z = self.bat.impedance(self.slot)
+                            self.last_impedance_time = datetime.datetime.now()
+                            self.zcnt += 1
+                            self.zavg += (z - self.zavg) / self.zcnt
+                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,'
+                        else:
+                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,'
+                        self.bat.logger.log(logstr,self.settings.logfile)
+
+                        # actually run the test state machine - decides what to do next
+                        self.state_machine_cycletest(mode,v)
 
 
-                sleep(self.settings.reporting_period)
+                if self.settings.reporting_period < 0.5:
+                    sleep(0.5)
+                else:
+                    sleep(self.settings.reporting_period)
+
             except:
                 sleep(2)
                 print('Exception on Channel',self.slot,self.name,'...Continuing test')

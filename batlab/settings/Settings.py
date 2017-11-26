@@ -34,6 +34,8 @@ class Settings:
         self.pulse_discharge_on_time        = 60
         self.pulse_charge_on_time           = 60
         self.pulse_charge_off_time          = 10
+        self.pulse_charge_off_rate          = 0
+        self.pulse_discharge_off_rate       = 0
 
         self.flag_ignore_safety_limits = False
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
@@ -122,6 +124,8 @@ class Settings:
                 self.pulse_charge_on_time = value
             if key == "pulseChrgOffTime":
                 self.pulse_charge_off_time = value
+            if key == "pulseDischrgOffRate": 
+                self.pulse_discharge_off_rate = value
 
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
         self.view()
@@ -147,3 +151,14 @@ class Settings:
         print("sineWaveMagnitude            :",self.sinewave_magnitude     )
         print("storageDischarge             :",self.bool_storage_dischrg   )
         print("storageDischargeVoltage      :",self.storage_dischrg_volt   )
+        print("trickleEnable                :",self.trickle_enable                 )
+        print("pulseEnable                  :",self.pulse_enable                   )
+        print("trickleDischrgEngageVoltage  :",self.trickle_discharge_engage_limit )
+        print("trickleChrgEngageVoltage     :",self.trickle_charge_engage_limit    )
+        print("trickleChrgRate              :",self.trickle_chrg_rate              )
+        print("trickleDischrgRate           :",self.trickle_dischrg_rate           )
+        print("pulseDischrgOffTime          :",self.pulse_discharge_off_time       )
+        print("pulseDischrgOnTime           :",self.pulse_discharge_on_time        )
+        print("pulseChrgOnTime              :",self.pulse_charge_on_time           )
+        print("pulseChrgOffTime             :",self.pulse_charge_off_time          )
+        print("pulseDischrgOffRate          :",self.pulse_discharge_off_rate       )

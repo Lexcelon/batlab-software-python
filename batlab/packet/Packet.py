@@ -1,4 +1,5 @@
 import logging
+import math
 
 # Holds information related to usb packets
 class Packet:
@@ -31,7 +32,7 @@ class Packet:
     def asvoltage(self):
         if(self.data & 0x8000): # the voltage can be negative
             self.data = -0x10000 + self.data
-            flt = float(self.data * 4.5 / 2**15)
+        flt = float(self.data * 4.5 / 2**15)
         return flt
     def asvcc(self):
         return 2**15 * 4.096 / self.data
@@ -52,7 +53,7 @@ class Packet:
         for i in range(0,6):
             if self.data & (1 << i):
                 return ERR_LIST[i]
-            return 'ERR_NONE'
+        return 'ERR_NONE'
     def astemperature(self):
         Rdiv = self.R[self.namespace]
         R = Rdiv / ((2**15 / self.data)-1)

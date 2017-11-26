@@ -45,7 +45,6 @@ def batlab_parse_cmd(cmd,bp):
         print(' charge [cell] (setpoint)          - begin charge on cell, optionally set I    ')
         print(' sinewave [cell] (setpoint)        - begin sine on cell, optionally set f in Hz')
         print(' discharge [cell] (setpoint)       - begin discharge on cell, optionally set I ')
-        # print(' test [settings file]              - starts full cycle test using settings ini ')
         print(' stop (cell)                       - set all cells to stop mode, or only 1 cell')
         print(' reset (cell)                      - set all cells to IDLE mode, or only 1 cell')
         print(' firmware load [firmware bin file] - load firmware update from local bin file  ')
@@ -121,30 +120,31 @@ def batlab_parse_cmd(cmd,bp):
     # COMMANDS BELOW THIS LINE REFERENCE THE ACTIVE BATLAB
     if bp.active_exists(): #checks to make sure the bp.batpool[bp.batactive] exists
         b = bp.batpool[bp.batactive] #get the active batlab object
-        if p[0] == 'write' and len(p) == 4:
-            try:
-                b.write(eval(p[1]),eval(p[2]),eval(p[3])).display()
-            except:
-                print("Invalid Usage.")
+        with b.critical_section:
+            if p[0] == 'write' and len(p) == 4:
+                try:
+                    b.write(eval(p[1]),eval(p[2]),eval(p[3])).display()
+                except:
+                    print("Invalid Usage.")
 
-        if p[0] == 'read' and len(p) == 3:
-            try:
-                b.read(eval(p[1]),eval(p[2])).display()
-            except:
-                print("Invalid Usage.")
+            if p[0] == 'read' and len(p) == 3:
+                try:
+                    b.read(eval(p[1]),eval(p[2])).display()
+                except:
+                    print("Invalid Usage.")
 
-        if p[0] == 'info':
-            print('Serial Num  :',b.read(UNIT,SERIAL_NUM).data + b.read(UNIT,DEVICE_ID).data * 65536 )
-            print('FirmwareVer :',b.read(UNIT,FIRMWARE_VER).data)
-            print('VCC         :','{:.4f}'.format(b.read(UNIT,VCC).asvcc()),'V')
-            print('SINE_FREQ   :','{:.4f}'.format(b.read(UNIT,SINE_FREQ).asfreq()),'Hz')
-            print('SETTINGS    :',b.read(UNIT,SETTINGS).data)
-            print('SINE_OFFSET :','{:.4f}'.format(b.read(UNIT,SINE_OFFSET).asioff()),'A')
-            print('SINE_MAGDIV :','{:.4f}'.format(b.read(UNIT,SINE_MAGDIV).asmagdiv()),'App')
-            print('LOCKED      :',b.read(UNIT,LOCK).value())
+            if p[0] == 'info':
+                print('Serial Num  :',b.read(UNIT,SERIAL_NUM).data + b.read(UNIT,DEVICE_ID).data * 65536 )
+                print('FirmwareVer :',b.read(UNIT,FIRMWARE_VER).data)
+                print('VCC         :','{:.4f}'.format(b.read(UNIT,VCC).asvcc()),'V')
+                print('SINE_FREQ   :','{:.4f}'.format(b.read(UNIT,SINE_FREQ).asfreq()),'Hz')
+                print('SETTINGS    :',b.read(UNIT,SETTINGS).data)
+                print('SINE_OFFSET :','{:.4f}'.format(b.read(UNIT,SINE_OFFSET).asioff()),'A')
+                print('SINE_MAGDIV :','{:.4f}'.format(b.read(UNIT,SINE_MAGDIV).asmagdiv()),'App')
+                print('LOCKED      :',b.read(UNIT,LOCK).value())
 
-        if p[0] == 'measure':
-            try:
+            if p[0] == 'measure':
+                #try:
                 aa = 0
                 bb = 0
                 cell = 0
@@ -158,164 +158,175 @@ def batlab_parse_cmd(cmd,bp):
                 for iter in range(aa,bb):
                     v = '{:.4f}'.format(b.read(iter,VOLTAGE).asvoltage())
                     i = '{:.4f}'.format(b.read(iter,CURRENT).ascurrent())
-                    t = '{:.4f}'.format(b.read(iter,TEMPERATURE).astemperature(b.R,b.B))
+                    t = '{:2.0f}'.format(b.read(iter,TEMPERATURE).astemperature(b.R,b.B))
                     b.write(UNIT,LOCK,LOCK_LOCKED)
                     cl = b.read(iter,CHARGEL).data
                     ch = b.read(iter,CHARGEH).data
                     b.write(UNIT,LOCK,LOCK_UNLOCKED)
-                    c = '{:.4f}'.format(batlab.ascharge(cl + (ch << 16)))
+                    c = '{:6.0f}'.format(batlab.ascharge(cl + (ch << 16)))
                     mode = b.read(iter,MODE).asmode()
                     err = b.read(iter,ERROR).aserr()
-                    print('CELL'+str(iter)+':',v,'V',i,'A',t,'degF',c,'Coulombs',mode,err)
-            except:
-                print("Invalid Usage.")
+                    sp = b.read(iter,CURRENT_SETPOINT).assetpoint()
+                    if mode == 'MODE_STOPPED':
+                        print('CELL'+str(iter)+':',v,'V','0.0000','A',t,'degF',c,'Coulombs',mode,'-',err)
+                    elif sp == 0 or mode == 'MODE_IDLE' or mode == 'MODE_NO_CELL':
+                        print('CELL'+str(iter)+':',v,'V','0.0000','A',t,'degF',c,'Coulombs',mode)
+                    else:
+                        print('CELL'+str(iter)+':',v,'V',i,'A',t,'degF',c,'Coulombs',mode)
+                #except:
+                #    print("Invalid Usage.")
 
-        if p[0] == 'setpoints':
-            try:
-                aa = 0
-                bb = 0
-                cell = 0
-                if len(p) > 1:
-                    cell = eval(p[1])
-                    aa = cell
-                    bb = cell + 1
-                else:
+            if p[0] == 'setpoints':
+                try:
                     aa = 0
-                    bb = 4
-                for iter in range(aa,bb):
-                    sp = '{:.4f}'.format(b.read(iter,CURRENT_SETPOINT).assetpoint())
-                    vh = '{:.4f}'.format(b.read(iter,VOLTAGE_LIMIT_CHG).asvoltage())
-                    vl = '{:.4f}'.format(b.read(iter,VOLTAGE_LIMIT_DCHG).asvoltage())
-                    ih = '{:.4f}'.format(b.read(iter,CURRENT_LIMIT_CHG).ascurrent())
-                    il = '{:.4f}'.format(b.read(iter,CURRENT_LIMIT_DCHG).ascurrent())
-                    th = '{:.1f}'.format(b.read(iter,TEMP_LIMIT_CHG).astemperature(b.R,b.B))
-                    tl = '{:.1f}'.format(b.read(iter,TEMP_LIMIT_DCHG).astemperature(b.R,b.B))
-                    print('CELL'+str(iter)+':',sp,'A setpoint,',vh,'V CHG,',vl,'V DISCHG,',ih,'A CHG,',il,'A DISCHG,',th,'degF CHG,',tl,'degF DISCHG')
-            except:
-                print("Invalid Usage.")
-
-        if p[0] == 'impedance' and len(p) > 1:
-            try:
-                cell = eval(p[1])
-                if b.channel[cell].is_testing():
-                    print("Ignoring command - test running on this channel")
-                    return
-                z = b.impedance(cell)
-                print('Impedance:',z,'Ohms')
-            except:
-                print('Impedance Measurement Could not be taken - check that cell is present')
-
-        if p[0] == 'charge' and len(p) > 1:
-            try:
-                cell = int(eval(p[1]))
-                if b.channel[cell].is_testing():
-                    print("Ignoring command - test running on this channel")
-                    return
-                if(len(p) > 2):
-                    b.write(cell,CURRENT_SETPOINT,batlab.encoder(eval(p[2])).assetpoint())
-                b.write(cell,MODE,MODE_CHARGE)
-            except:
-                print("Invalid Usage.")
-
-        if p[0] == 'sinewave' and len(p) > 1:
-            try:
-                cell = int(eval(p[1]))
-                if b.channel[cell].is_testing():
-                    print("Ignoring command - test running on this channel")
-                    return
-                if(len(p) > 2):
-                    b.write(UNIT,SINE_FREQ,batlab.encoder(eval(p[2])).asfreq())
-                b.write(cell,MODE,MODE_IMPEDANCE)
-            except:
-                print("Invalid Usage.")
-
-        if p[0] == 'discharge' and len(p) > 1:
-            try:
-                cell = int(eval(p[1]))
-                # if b.channel[cell].is_testing():
-                # print("Ignoring command - test running on this channel")
-                # return
-                if(len(p) > 2):
-                    b.write(cell,CURRENT_SETPOINT,batlab.encoder(eval(p[2])).assetpoint())
-                b.write(cell,MODE,MODE_DISCHARGE)
-            except:
-                print("Invalid Usage.")
-
-        if p[0] == 'stop':
-            if(len(p) > 1):
-                try:
-                    cell = int(eval(p[1]))
-                    b.write(cell,MODE,MODE_STOPPED)
-                    b.channel[cell].end_test()
+                    bb = 0
+                    cell = 0
+                    if len(p) > 1:
+                        cell = eval(p[1])
+                        aa = cell
+                        bb = cell + 1
+                    else:
+                        aa = 0
+                        bb = 4
+                    for iter in range(aa,bb):
+                        sp = '{:.4f}'.format(b.read(iter,CURRENT_SETPOINT).assetpoint())
+                        vh = '{:.4f}'.format(b.read(iter,VOLTAGE_LIMIT_CHG).asvoltage())
+                        vl = '{:.4f}'.format(b.read(iter,VOLTAGE_LIMIT_DCHG).asvoltage())
+                        ih = '{:.4f}'.format(b.read(iter,CURRENT_LIMIT_CHG).ascurrent())
+                        il = '{:.4f}'.format(b.read(iter,CURRENT_LIMIT_DCHG).ascurrent())
+                        th = '{:.1f}'.format(b.read(iter,TEMP_LIMIT_CHG).astemperature(b.R,b.B))
+                        tl = '{:.1f}'.format(b.read(iter,TEMP_LIMIT_DCHG).astemperature(b.R,b.B))
+                        print('CELL'+str(iter)+':',sp,'A setpoint,',vh,'V CHG,',vl,'V DISCHG,',ih,'A CHG,',il,'A DISCHG,',th,'degF CHG,',tl,'degF DISCHG')
                 except:
                     print("Invalid Usage.")
-            else:
-                b.write(CELL0,MODE,MODE_STOPPED)
-                b.channel[CELL0].end_test()
-                b.write(CELL1,MODE,MODE_STOPPED)
-                b.channel[CELL1].end_test()
-                b.write(CELL2,MODE,MODE_STOPPED)
-                b.channel[CELL2].end_test()
-                b.write(CELL3,MODE,MODE_STOPPED)
-                b.channel[CELL3].end_test()
 
-        if p[0] == 'reset':
-            if(len(p) > 1):
+            if p[0] == 'lowcurrent':
+                if len(p) > 1:
+                    current = eval(p[1])
+                b.write(UNIT,ZERO_AMP_THRESH,batlab.encoder(current).ascurrent())
+
+            if p[0] == 'impedance' and len(p) > 1:
+                try:
+                    cell = eval(p[1])
+                    if b.channel[cell].is_testing():
+                        print("Ignoring command - test running on this channel")
+                        return
+                    z = b.impedance(cell)
+                    print('Impedance:',z,'Ohms')
+                except:
+                    print('Impedance Measurement Could not be taken - check that cell is present')
+
+            if p[0] == 'charge' and len(p) > 1:
                 try:
                     cell = int(eval(p[1]))
-                    b.channel[cell].end_test()
-                    b.write(cell,MODE,MODE_IDLE)
+                    if b.channel[cell].is_testing():
+                        print("Ignoring command - test running on this channel")
+                        return
+                    if(len(p) > 2):
+                        b.write(cell,CURRENT_SETPOINT,batlab.encoder(eval(p[2])).assetpoint())
+                    b.write(cell,MODE,MODE_CHARGE)
                 except:
                     print("Invalid Usage.")
-            else:
-                b.channel[CELL0].end_test()
-                b.channel[CELL1].end_test()
-                b.channel[CELL2].end_test()
-                b.channel[CELL3].end_test()
-                b.write(CELL0,MODE,MODE_IDLE)
-                b.write(CELL1,MODE,MODE_IDLE)
-                b.write(CELL2,MODE,MODE_IDLE)
-                b.write(CELL3,MODE,MODE_IDLE)
 
-        if p[0] == 'firmware' and len(p) > 1:
+            if p[0] == 'sinewave' and len(p) > 1:
+                try:
+                    cell = int(eval(p[1]))
+                    if b.channel[cell].is_testing():
+                        print("Ignoring command - test running on this channel")
+                        return
+                    if(len(p) > 2):
+                        b.write(UNIT,SINE_FREQ,batlab.encoder(eval(p[2])).asfreq())
+                    b.write(cell,MODE,MODE_IMPEDANCE)
+                except:
+                    print("Invalid Usage.")
 
-            if p[1] == 'load' and len(p) > 2:
-                b.firmware_bootload(p[2]) # The entire bootload procedure is a library function
+            if p[0] == 'discharge' and len(p) > 1:
+                try:
+                    cell = int(eval(p[1]))
+                    # if b.channel[cell].is_testing():
+                    # print("Ignoring command - test running on this channel")
+                    # return
+                    if(len(p) > 2):
+                        b.write(cell,CURRENT_SETPOINT,batlab.encoder(eval(p[2])).assetpoint())
+                    b.write(cell,MODE,MODE_DISCHARGE)
+                except:
+                    print("Invalid Usage.")
 
-            if p[1] == 'update':
-                b.firmware_update()
-
-            if p[1] == 'check':
-                ver,filename = b.firmware_check(False) # firmware_check(True) checks AND downloads image
-                print("Latest version is:",ver)
-
-        if p[0] == 'cycletest' and len(p) > 2:
-            TT_DISCHARGE = 0
-            TT_CYCLE = 1
-            try:
-                cell = int(eval(p[1]))
-                if b.channel[cell].is_testing():
-                    print("Can't start test - Test is already running on this channel")
-                    return
-                b.channel[cell].start_test(p[2],TT_CYCLE)
-            except:
-                print("Invalid Usage.")
-
-        if p[0] == 'dischargetest' and len(p) > 2:
-            TT_DISCHARGE = 0
-            TT_CYCLE = 1
-            try:
-                cell = int(eval(p[1]))
-                if b.channel[cell].is_testing():
-                    print("Can't start test - Test is already running on this channel")
-                    return
-                if len(p) > 3:
-                    timeout = eval(p[3])
+            if p[0] == 'stop':
+                if(len(p) > 1):
+                    try:
+                        cell = int(eval(p[1]))
+                        b.write(cell,MODE,MODE_STOPPED)
+                        b.channel[cell].end_test()
+                    except:
+                        print("Invalid Usage.")
                 else:
-                    timeout = None
-                    b.channel[cell].start_test(p[2],TT_DISCHARGE,timeout)
-            except:
-                print("Invalid Usage.")
+                    b.write(CELL0,MODE,MODE_STOPPED)
+                    b.channel[CELL0].end_test()
+                    b.write(CELL1,MODE,MODE_STOPPED)
+                    b.channel[CELL1].end_test()
+                    b.write(CELL2,MODE,MODE_STOPPED)
+                    b.channel[CELL2].end_test()
+                    b.write(CELL3,MODE,MODE_STOPPED)
+                    b.channel[CELL3].end_test()
+
+            if p[0] == 'reset':
+                if(len(p) > 1):
+                    try:
+                        cell = int(eval(p[1]))
+                        b.channel[cell].end_test()
+                        b.write(cell,MODE,MODE_IDLE)
+                    except:
+                        print("Invalid Usage.")
+                else:
+                    b.channel[CELL0].end_test()
+                    b.channel[CELL1].end_test()
+                    b.channel[CELL2].end_test()
+                    b.channel[CELL3].end_test()
+                    b.write(CELL0,MODE,MODE_IDLE)
+                    b.write(CELL1,MODE,MODE_IDLE)
+                    b.write(CELL2,MODE,MODE_IDLE)
+                    b.write(CELL3,MODE,MODE_IDLE)
+
+            if p[0] == 'firmware' and len(p) > 1:
+
+                if p[1] == 'load' and len(p) > 2:
+                    b.firmware_bootload(p[2]) # The entire bootload procedure is a library function
+
+                if p[1] == 'update':
+                    b.firmware_update()
+
+                if p[1] == 'check':
+                    ver,filename = b.firmware_check(False) # firmware_check(True) checks AND downloads image
+                    print("Latest version is:",ver)
+
+            if p[0] == 'cycletest' and len(p) > 2:
+                TT_DISCHARGE = 0
+                TT_CYCLE = 1
+                try:
+                    cell = int(eval(p[1]))
+                    if b.channel[cell].is_testing():
+                        print("Can't start test - Test is already running on this channel")
+                        return
+                    b.channel[cell].start_test(p[2],TT_CYCLE)
+                except:
+                    print("Invalid Usage.")
+
+            if p[0] == 'dischargetest' and len(p) > 2:
+                TT_DISCHARGE = 0
+                TT_CYCLE = 1
+                try:
+                    cell = int(eval(p[1]))
+                    if b.channel[cell].is_testing():
+                        print("Can't start test - Test is already running on this channel")
+                        return
+                    if len(p) > 3:
+                        timeout = eval(p[3])
+                    else:
+                        timeout = None
+                        b.channel[cell].start_test(p[2],TT_DISCHARGE,timeout)
+                except:
+                    print("Invalid Usage.")
 
     else:
         if bp.batactive == '':
