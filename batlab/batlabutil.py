@@ -1,11 +1,11 @@
 from time import sleep, ctime, time
 from builtins import input
 
-from .constants import *
 import batlab
-###################################################################################################
+from batlab.constants import *
+
 def batlabutil():
-	bp = batlab.batpool() # Create the Batpool
+	bp = batlab.batpool.Batpool() # Create the Batpool
 	print('Batlab Utility Script')
 	batlab_parse_cmd('help',bp)
 	while(True):

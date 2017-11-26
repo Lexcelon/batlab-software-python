@@ -11,9 +11,9 @@ class TestBatlab(unittest.TestCase):
     def test_tests_are_running(self):
         self.assertEqual(True, True)
 
-    # def test_batlab_imported(self):
-    #     batpool = batlab.batpool()
-    #     self.assertIsNotNone(batpool)
+    def test_batpool_imported(self):
+        batpool = batlab.batpool.Batpool()
+        self.assertIsNotNone(batpool)
 
-    # def test_batlabutil_exists(self):
-    #     self.assertIsNotNone(batlab.batlabutil())
+    def test_batlabutil_exists(self):
+        self.assertIsNotNone(batlab.batlabutil)

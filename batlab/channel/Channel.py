@@ -1,5 +1,5 @@
-#test manager.py
-from .constants import *
+from batlab.constants import *
+
 import batlab
 from time import sleep, ctime, time
 import datetime
@@ -17,7 +17,7 @@ else:
 ###################################################################################################
 ## Channel class - represents a slot for a cell in a batlab
 ###################################################################################################	
-class channel:
+class Channel:
 
 	def __init__(self,bat,slot):
 		self.bat = bat
