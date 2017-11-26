@@ -1,6 +1,6 @@
 *.egg-info
 *__pycache__*
-*.egg
+*.egg*
 *.zip
 *.pyc
 build/lib/batlab/__init__.py
