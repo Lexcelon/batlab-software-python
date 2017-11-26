@@ -314,7 +314,7 @@ class Batlab:
                         ctr = ctr + 1
                     if ctr == 20:
                         continue
-                    p = packet()
+                    p = packet.Packet()
                     p.timestamp = datetime.datetime.now()
                     p.namespace = inbuf[0]
                     if(inbuf[1] == 0):
