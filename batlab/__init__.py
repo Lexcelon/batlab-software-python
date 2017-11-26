@@ -6,4 +6,4 @@ from . import encoder
 from . import logger
 from . import packet
 from . import settings
-from .batlabutil import batlabutil
+from . import batlabutil
