@@ -1,11 +1,11 @@
 from time import sleep, ctime, time
 from builtins import input
 
-from .constants import *
-import batlab
-###################################################################################################
+from batlab import batpool
+from batlab.constants import *
+
 def batlabutil():
-	bp = batlab.batpool() # Create the Batpool
+	bp = batpool.Batpool() # Create the Batpool
 	print('Batlab Utility Script')
 	batlab_parse_cmd('help',bp)
 	while(True):
@@ -44,7 +44,7 @@ def batlab_parse_cmd(cmd,bp):
 		print(' charge [cell] (setpoint)          - begin charge on cell, optionally set I    ')
 		print(' sinewave [cell] (setpoint)        - begin sine on cell, optionally set f in Hz')
 		print(' discharge [cell] (setpoint)       - begin discharge on cell, optionally set I ')
-		#print(' test [settings file]              - starts full cycle test using settings ini ')
+		# print(' test [settings file]              - starts full cycle test using settings ini ')
 		print(' stop (cell)                       - set all cells to stop mode, or only 1 cell')
 		print(' reset (cell)                      - set all cells to IDLE mode, or only 1 cell')
 		print(' firmware load [firmware bin file] - load firmware update from local bin file  ')
