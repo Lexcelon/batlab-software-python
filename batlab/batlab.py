@@ -1,4 +1,3 @@
-#clsBatlab
 from .constants import *
 from .testmgr import *
 

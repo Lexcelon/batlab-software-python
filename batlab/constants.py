@@ -1,4 +1,4 @@
-'''namespace definitions'''
+# namespace definitions
 CELL0             = 0x00
 CELL1             = 0x01
 CELL2             = 0x02
@@ -7,7 +7,8 @@ UNIT              = 0x04
 BOOTLOADER        = 0x05
 COMMS             = 0xFF
 NAMESPACE_LIST = [0x00,0x01,0x02,0x03,0x04,0x05,0xFF]
-'''cell register map'''
+
+# cell register map
 MODE              = 0x00
 ERROR             = 0x01
 STATUS            = 0x02
@@ -41,7 +42,8 @@ CURR_LOWV_OFF     = 0x1D
 CURR_LOWV_OFF_SCA = 0x1E
 
 CELLREG_MAX = 0x1E
-'''unit register map'''
+
+# unit register map
 SERIAL_NUM       =  0x00
 DEVICE_ID        =  0x01
 FIRMWARE_VER     =  0x02
@@ -61,7 +63,8 @@ LOCK              = 0x0F
 ZERO_AMP_THRESH   = 0x10
 
 UNITREG_MAX = 0x10
-'''COMMs register map'''
+
+# COMMs register map
 LED0             = 0x00
 LED1             = 0x01
 LED2             = 0x02
@@ -70,11 +73,13 @@ PSU              = 0x04
 PSU_VOLTAGE      = 0x05
 
 COMMREGS_MAX = 0x05
-'''BOOTLOAD register map'''
+
+# BOOTLOAD register map
 BL_BOOTLOAD      = 0x00
 BL_ADDR          = 0x01
 BL_DATA          = 0x02
-'''register specific codes and defines'''
+
+# register specific codes and defines
 MODE_NO_CELL           = 0x0000
 MODE_BACKWARDS         = 0x0001
 MODE_IDLE              = 0x0002
@@ -116,7 +121,7 @@ LOCK_UNLOCKED          = 0x0000
 
 COMMAND_ERROR          = 257
 
-'''test manager constants'''
+# test manager constants
 TT_DISCHARGE = 0
 TT_CYCLE = 1
 
