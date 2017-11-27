@@ -1,5 +1,6 @@
 import logging
 import math
+from batlab.constants import *
 
 # Holds information related to usb packets
 class Packet:

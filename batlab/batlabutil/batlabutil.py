@@ -2,7 +2,7 @@ from time import sleep, ctime, time
 from builtins import input
 import logging
 
-from batlab import batpool
+from batlab import batpool, batlab, encoder
 from batlab.constants import *
 
 def batlabutil():
@@ -144,37 +144,37 @@ def batlab_parse_cmd(cmd,bp):
                 print('LOCKED      :',b.read(UNIT,LOCK).value())
 
             if p[0] == 'measure':
-                #try:
-                aa = 0
-                bb = 0
-                cell = 0
-                if len(p) > 1:
-                    cell = eval(p[1])
-                    aa = cell
-                    bb = cell + 1
-                else:
+                try:
                     aa = 0
-                    bb = 4
-                for iter in range(aa,bb):
-                    v = '{:.4f}'.format(b.read(iter,VOLTAGE).asvoltage())
-                    i = '{:.4f}'.format(b.read(iter,CURRENT).ascurrent())
-                    t = '{:2.0f}'.format(b.read(iter,TEMPERATURE).astemperature(b.R,b.B))
-                    b.write(UNIT,LOCK,LOCK_LOCKED)
-                    cl = b.read(iter,CHARGEL).data
-                    ch = b.read(iter,CHARGEH).data
-                    b.write(UNIT,LOCK,LOCK_UNLOCKED)
-                    c = '{:6.0f}'.format(batlab.ascharge(cl + (ch << 16)))
-                    mode = b.read(iter,MODE).asmode()
-                    err = b.read(iter,ERROR).aserr()
-                    sp = b.read(iter,CURRENT_SETPOINT).assetpoint()
-                    if mode == 'MODE_STOPPED':
-                        print('CELL'+str(iter)+':',v,'V','0.0000','A',t,'degF',c,'Coulombs',mode,'-',err)
-                    elif sp == 0 or mode == 'MODE_IDLE' or mode == 'MODE_NO_CELL':
-                        print('CELL'+str(iter)+':',v,'V','0.0000','A',t,'degF',c,'Coulombs',mode)
+                    bb = 0
+                    cell = 0
+                    if len(p) > 1:
+                        cell = eval(p[1])
+                        aa = cell
+                        bb = cell + 1
                     else:
-                        print('CELL'+str(iter)+':',v,'V',i,'A',t,'degF',c,'Coulombs',mode)
-                #except:
-                #    print("Invalid Usage.")
+                        aa = 0
+                        bb = 4
+                    for iter in range(aa,bb):
+                        v = '{:.4f}'.format(b.read(iter,VOLTAGE).asvoltage())
+                        i = '{:.4f}'.format(b.read(iter,CURRENT).ascurrent())
+                        t = '{:2.0f}'.format(b.read(iter,TEMPERATURE).astemperature(b.R,b.B))
+                        b.write(UNIT,LOCK,LOCK_LOCKED)
+                        cl = b.read(iter,CHARGEL).data
+                        ch = b.read(iter,CHARGEH).data
+                        b.write(UNIT,LOCK,LOCK_UNLOCKED)
+                        c = '{:6.0f}'.format(batlab.ascharge(cl + (ch << 16)))
+                        mode = b.read(iter,MODE).asmode()
+                        err = b.read(iter,ERROR).aserr()
+                        sp = b.read(iter,CURRENT_SETPOINT).assetpoint()
+                        if mode == 'MODE_STOPPED':
+                            print('CELL'+str(iter)+':',v,'V','0.0000','A',t,'degF',c,'Coulombs',mode,'-',err)
+                        elif sp == 0 or mode == 'MODE_IDLE' or mode == 'MODE_NO_CELL':
+                            print('CELL'+str(iter)+':',v,'V','0.0000','A',t,'degF',c,'Coulombs',mode)
+                        else:
+                            print('CELL'+str(iter)+':',v,'V',i,'A',t,'degF',c,'Coulombs',mode)
+                except:
+                    print("Invalid Usage.")
 
             if p[0] == 'setpoints':
                 try:
@@ -189,7 +189,8 @@ def batlab_parse_cmd(cmd,bp):
                         aa = 0
                         bb = 4
                     for iter in range(aa,bb):
-                        sp = '{:.4f}'.format(b.read(iter,CURRENT_SETPOINT).assetpoint())
+                        #sp = '{:.4f}'.format(b.read(iter,CURRENT_SETPOINT).assetpoint())
+                        sp = '{:.4f}'.format(b.setpoints[iter]/128.0)
                         vh = '{:.4f}'.format(b.read(iter,VOLTAGE_LIMIT_CHG).asvoltage())
                         vl = '{:.4f}'.format(b.read(iter,VOLTAGE_LIMIT_DCHG).asvoltage())
                         ih = '{:.4f}'.format(b.read(iter,CURRENT_LIMIT_CHG).ascurrent())
@@ -203,7 +204,7 @@ def batlab_parse_cmd(cmd,bp):
             if p[0] == 'lowcurrent':
                 if len(p) > 1:
                     current = eval(p[1])
-                b.write(UNIT,ZERO_AMP_THRESH,batlab.encoder(current).ascurrent())
+                b.write(UNIT,ZERO_AMP_THRESH,encoder.Encoder(current).ascurrent())
 
             if p[0] == 'impedance' and len(p) > 1:
                 try:
@@ -223,7 +224,7 @@ def batlab_parse_cmd(cmd,bp):
                         print("Ignoring command - test running on this channel")
                         return
                     if(len(p) > 2):
-                        b.write(cell,CURRENT_SETPOINT,batlab.encoder(eval(p[2])).assetpoint())
+                        b.write(cell,CURRENT_SETPOINT,encoder.Encoder(eval(p[2])).assetpoint())
                     b.write(cell,MODE,MODE_CHARGE)
                 except:
                     print("Invalid Usage.")
@@ -235,7 +236,7 @@ def batlab_parse_cmd(cmd,bp):
                         print("Ignoring command - test running on this channel")
                         return
                     if(len(p) > 2):
-                        b.write(UNIT,SINE_FREQ,batlab.encoder(eval(p[2])).asfreq())
+                        b.write(UNIT,SINE_FREQ,encoder.Encoder(eval(p[2])).asfreq())
                     b.write(cell,MODE,MODE_IMPEDANCE)
                 except:
                     print("Invalid Usage.")
@@ -247,7 +248,7 @@ def batlab_parse_cmd(cmd,bp):
                     # print("Ignoring command - test running on this channel")
                     # return
                     if(len(p) > 2):
-                        b.write(cell,CURRENT_SETPOINT,batlab.encoder(eval(p[2])).assetpoint())
+                        b.write(cell,CURRENT_SETPOINT,encoder.Encoder(eval(p[2])).assetpoint())
                     b.write(cell,MODE,MODE_DISCHARGE)
                 except:
                     print("Invalid Usage.")

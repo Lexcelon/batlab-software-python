@@ -1,6 +1,7 @@
 from batlab.constants import *
 
 import batlab
+from batlab import encoder, batlab
 from time import sleep
 import datetime
 import threading
@@ -62,22 +63,22 @@ class Channel:
 
         # Initialize the test settings
         self.bat.write(self.slot,MODE,MODE_IDLE)
-        self.bat.write(self.slot,VOLTAGE_LIMIT_CHG,batlab.encoder(self.settings.high_volt_cutoff).asvoltage())
-        self.bat.write(self.slot,VOLTAGE_LIMIT_DCHG,batlab.encoder(self.settings.low_volt_cutoff).asvoltage())
-        self.bat.write(self.slot,CURRENT_LIMIT_CHG,batlab.encoder(self.settings.chrg_current_cutoff).ascurrent())
-        self.bat.write(self.slot,CURRENT_LIMIT_DCHG,batlab.encoder(self.settings.dischrg_current_cutoff).ascurrent())
-        self.bat.write(self.slot,TEMP_LIMIT_CHG,batlab.encoder(self.settings.chrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
-        self.bat.write(self.slot,TEMP_LIMIT_DCHG,batlab.encoder(self.settings.dischrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
+        self.bat.write(self.slot,VOLTAGE_LIMIT_CHG,encoder.Encoder(self.settings.high_volt_cutoff).asvoltage())
+        self.bat.write(self.slot,VOLTAGE_LIMIT_DCHG,encoder.Encoder(self.settings.low_volt_cutoff).asvoltage())
+        self.bat.write(self.slot,CURRENT_LIMIT_CHG,encoder.Encoder(self.settings.chrg_current_cutoff).ascurrent())
+        self.bat.write(self.slot,CURRENT_LIMIT_DCHG,encoder.Encoder(self.settings.dischrg_current_cutoff).ascurrent())
+        self.bat.write(self.slot,TEMP_LIMIT_CHG,encoder.Encoder(self.settings.chrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
+        self.bat.write(self.slot,TEMP_LIMIT_DCHG,encoder.Encoder(self.settings.dischrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
         self.bat.write(self.slot,CHARGEH,0)
         self.bat.write(self.slot,CHARGEL,0)
 
         # Actually start the test
         if(self.test_type == TT_CYCLE):
-            self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.chrg_rate).assetpoint())
+            self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.chrg_rate).assetpoint())
             self.bat.write(self.slot,MODE,MODE_CHARGE)
             self.test_state = TS_PRECHARGE
         else: # Simple Discharge Test
-            self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.dischrg_rate).assetpoint())
+            self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.dischrg_rate).assetpoint())
             self.bat.write(self.slot,MODE,MODE_DISCHARGE)
             self.test_state = TS_DISCHARGE
 
@@ -131,7 +132,7 @@ class Channel:
             # handle feature to trickle charge the cell if close to voltage limit
             if self.settings.trickle_enable == 1:
                 if v > self.settings.trickle_charge_engage_limit and self.trickle_engaged == False:
-                    self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.trickle_chrg_rate).assetpoint())
+                    self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.trickle_chrg_rate).assetpoint())
                     self.trickle_engaged = True
 
             if mode == MODE_STOPPED:
@@ -142,7 +143,7 @@ class Channel:
                 if self.current_cycle >= (self.settings.num_meas_cyc + self.settings.num_warm_up_cyc):
                     if self.settings.bool_storage_dischrg:
                         self.test_state = TS_POSTDISCHARGE
-                        self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.dischrg_rate).assetpoint())
+                        self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.dischrg_rate).assetpoint())
                         self.bat.write(self.slot,MODE,MODE_DISCHARGE)
                     else:
                         self.test_state = TS_IDLE
@@ -159,7 +160,7 @@ class Channel:
                 self.pulse_discharge_off_time = datetime.datetime.now()
                 self.trickle_engaged = False
 
-                self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.dischrg_rate).assetpoint())
+                self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.dischrg_rate).assetpoint())
                 self.bat.write(self.slot,MODE,MODE_DISCHARGE)
                 self.current_cycle += 1
 
@@ -175,7 +176,7 @@ class Channel:
                     if self.pulse_discharge_on_time == 0:
                         self.pulse_discharge_on_time = datetime.datetime.now()
                     if (datetime.datetime.now() - self.pulse_discharge_on_time).total_seconds() > self.settings.pulse_discharge_on_time and self.settings.pulse_discharge_on_time > 0:
-                        self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.pulse_discharge_off_rate).assetpoint())
+                        self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.pulse_discharge_off_rate).assetpoint())
                         self.pulse_state = False
                         self.pulse_discharge_off_time = datetime.datetime.now()
                 else:
@@ -183,16 +184,16 @@ class Channel:
                         self.pulse_discharge_off_time = datetime.datetime.now()
                     if (datetime.datetime.now() - self.pulse_discharge_off_time).total_seconds() > self.settings.pulse_discharge_off_time and self.settings.pulse_discharge_off_time > 0:
                         if self.trickle_engaged == True:
-                            self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.trickle_dischrg_rate).assetpoint())
+                            self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.trickle_dischrg_rate).assetpoint())
                         else:
-                            self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.dischrg_rate).assetpoint())
+                            self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.dischrg_rate).assetpoint())
                         self.pulse_state = True
                         self.pulse_discharge_on_time = datetime.datetime.now()
 
             # handle feature to trickle charge the cell if close to voltage limit
             if self.settings.trickle_enable == 1:
                 if v < self.settings.trickle_discharge_engage_limit and self.trickle_engaged == False:
-                    self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.trickle_dischrg_rate).assetpoint())
+                    self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.trickle_dischrg_rate).assetpoint())
                     self.trickle_engaged = True
 
 
@@ -218,7 +219,7 @@ class Channel:
                 self.pulse_charge_off_time = datetime.datetime.now()
                 self.trickle_engaged = False
 
-                self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.chrg_rate).assetpoint())
+                self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.chrg_rate).assetpoint())
                 self.bat.write(self.slot,MODE,MODE_CHARGE)
 
         elif self.test_state == TS_CHARGE:
@@ -228,7 +229,7 @@ class Channel:
                     if self.pulse_charge_on_time == 0:
                         self.pulse_charge_on_time = datetime.datetime.now()
                     if (datetime.datetime.now() - self.pulse_charge_on_time).total_seconds() > self.settings.pulse_charge_on_time and self.settings.pulse_charge_on_time > 0:
-                        self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.pulse_charge_off_rate).assetpoint())
+                        self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.pulse_charge_off_rate).assetpoint())
                         self.pulse_state = False
                         self.pulse_charge_off_time = datetime.datetime.now()
                 else:
@@ -236,16 +237,16 @@ class Channel:
                         self.pulse_charge_off_time = datetime.datetime.now()
                     if (datetime.datetime.now() - self.pulse_charge_off_time).total_seconds() > self.settings.pulse_charge_off_time and self.settings.pulse_charge_off_time > 0:
                         if self.trickle_engaged == True:
-                            self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.trickle_chrg_rate).assetpoint())
+                            self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.trickle_chrg_rate).assetpoint())
                         else:
-                            self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.chrg_rate).assetpoint())
+                            self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.chrg_rate).assetpoint())
                         self.pulse_state = True
                         self.pulse_charge_on_time = datetime.datetime.now()
 
             # handle feature to trickle charge the cell if close to voltage limit
             if self.settings.trickle_enable == 1:
                 if v > self.settings.trickle_charge_engage_limit and self.trickle_engaged == False:
-                    self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.trickle_chrg_rate).assetpoint())
+                    self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.trickle_chrg_rate).assetpoint())
                     self.trickle_engaged = True
 
             if mode == MODE_STOPPED:
@@ -255,7 +256,7 @@ class Channel:
                 if self.current_cycle >= (self.settings.num_meas_cyc + self.settings.num_warm_up_cyc):
                     if self.settings.bool_storage_dischrg:
                         self.test_state = TS_POSTDISCHARGE
-                        self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder(self.settings.dischrg_rate).assetpoint())
+                        self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.dischrg_rate).assetpoint())
                         self.bat.write(self.slot,MODE,MODE_DISCHARGE)
                     else:
                         self.test_state = TS_IDLE

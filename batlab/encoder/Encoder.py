@@ -1,3 +1,4 @@
+import math
 # Given value, converts to register data. essentially the opposite of packet class
 class Encoder:
     def __init__(self,data):
