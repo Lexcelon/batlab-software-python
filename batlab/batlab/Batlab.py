@@ -2,29 +2,21 @@ from batlab.constants import *
 from batlab import channel, packet
 
 import serial
-import serial.tools.list_ports
-from time import sleep, ctime, time
+from time import sleep
 import datetime
-import sys
-import math
 import os
-import json
-import traceback
 import re
 import logging
 import threading
 
-is_python2 = sys.version[0] == '2'
-
-if is_python2:
+try:
+    # Python 2.x
     import Queue as queue
     from urllib2 import urlopen
-else:
+except ImportError:
+    # Python 3.x
     import queue as queue
     from urllib.request import urlopen
-
-def ascharge(data):
-    return ((6 * (data / 2**15) ) * 4.096 / 9.765625)
 
 # Holds an instance of 1 Batlab. Pass in a COM port
 class Batlab:
@@ -33,15 +25,17 @@ class Batlab:
         self.ver = ''
         self.port = port
         self.is_open = False
-        self.qstream = queue.Queue()   #Queue of stream packets
-        self.qresponse = queue.Queue() #Queue of response packets
+        self.qstream = queue.Queue() # Queue of stream packets
+        self.qresponse = queue.Queue() # Queue of response packets
         self.killevt = threading.Event()
         self.B = [3380,3380,3380,3380]
         self.R = [10000,10000,10000,10000]
+        self.setpoints = [256,256,256,256]
         self.logger = logger
         self.settings = settings
         self.critical_write = threading.Lock()
         self.critical_read = threading.Lock()
+        self.critical_section = threading.Lock()
         self.connect()
         self.channel = [channel.Channel(self,0), channel.Channel(self,1), channel.Channel(self,2), channel.Channel(self,3)]
 
@@ -61,7 +55,8 @@ class Batlab:
         thread.daemon = True
         thread.start()
         if self.read(0x05,0x01).value() == 257: #then we're not in the bootloader
-            self.write(UNIT,SETTINGS,SET_TRIM_OUTPUT)
+            # self.write(UNIT,SETTINGS,SET_TRIM_OUTPUT)  -- no longer do this because it is buggy in V3 Firmware.
+            self.write(UNIT,SETTINGS,0)
             self.R[0] = self.read(0x00,0x16).data
             self.R[1] = self.read(0x01,0x16).data
             self.R[2] = self.read(0x02,0x16).data
@@ -70,6 +65,10 @@ class Batlab:
             self.B[1] = self.read(0x01,0x17).data
             self.B[2] = self.read(0x02,0x17).data
             self.B[3] = self.read(0x03,0x17).data
+            self.setpoints[0] = self.read(0x00,CURRENT_SETPOINT).data
+            self.setpoints[1] = self.read(0x01,CURRENT_SETPOINT).data
+            self.setpoints[2] = self.read(0x02,CURRENT_SETPOINT).data
+            self.setpoints[3] = self.read(0x03,CURRENT_SETPOINT).data
             a = self.read(0x04,0x00).data
             b = self.read(0x04,0x01).data
             self.sn = str(a + b*65536)
@@ -131,6 +130,17 @@ class Batlab:
             return None
         if(value & 0x8000): #convert large numbers into negative numbers because the to_bytes call is expecting an int16
             value = -0x10000 + value
+        '''patch for firmware < 3 ... current compensation bug in firmware, so moving the control loop to software.'''
+        ''' we do this by now keeping track of the setpoint in software, and then the control loop tweaks the firmware setpoint'''
+        if addr == CURRENT_SETPOINT and namespace < 4:
+            if value > 575: #maximum value to write to this register
+                value = 575
+            if value < 0:
+                value = 0
+            self.setpoints[namespace] = value
+        '''make sure we cant turn on the current compensation control loop in firmware'''
+        if addr == SETTINGS and namespace == UNIT:
+            value &= ~0x0003
 
         try:
             with self.critical_write:
@@ -301,11 +311,11 @@ class Batlab:
                     p.timestamp = datetime.datetime.now()
                     p.type = 'RESPONSE'
                     p.namespace = inbuf[0]
-                    if((inbuf[1] & 0x80)):       #Command Response Byte 3:  w/~r + addr
+                    if((inbuf[1] & 0x80)): #Command Response Byte 3:  w/~r + addr
                         p.write = True
                     p.addr = inbuf[1] & 0x7F
-                    p.data = inbuf[2] + inbuf[3]*256  #data payload
-                    self.qresponse.put(p)                     #Add the packet to the queue
+                    p.data = inbuf[2] + inbuf[3]*256 #data payload
+                    self.qresponse.put(p) #Add the packet to the queue
                     p.print_packet()
                 elif(byte == 0xAF): #stream packet Byte 1: 0xAF
                     while len(inbuf) < 12 and ctr < 20:
@@ -324,7 +334,7 @@ class Batlab:
                         p.temp = inbuf[6] + inbuf[7] * 256
                         p.current = inbuf[8] + inbuf[9] * 256
                         p.voltage = inbuf[10] + inbuf[11] * 256
-                    self.qstream.put(p)                     #Add the packet to the queue
+                    self.qstream.put(p) #Add the packet to the queue
                     p.print_packet()
                 else:
                     logging.warning("<<thdBatlab:Packet Loss Detected>>")

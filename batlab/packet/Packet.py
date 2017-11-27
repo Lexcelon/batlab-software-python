@@ -1,4 +1,6 @@
 import logging
+import math
+from batlab.constants import *
 
 # Holds information related to usb packets
 class Packet:
@@ -29,9 +31,9 @@ class Packet:
             li = [self.mode,self.status,self.temp,self.current,self.voltage]
             return li
     def asvoltage(self):
-        if(self.data & 0x8000): #the voltage can be negative
+        if(self.data & 0x8000): # the voltage can be negative
             self.data = -0x10000 + self.data
-            flt = float(self.data * 4.5 / 2**15)
+        flt = float(self.data * 4.5 / 2**15)
         return flt
     def asvcc(self):
         return 2**15 * 4.096 / self.data
@@ -52,13 +54,13 @@ class Packet:
         for i in range(0,6):
             if self.data & (1 << i):
                 return ERR_LIST[i]
-            return 'ERR_NONE'
+        return 'ERR_NONE'
     def astemperature(self):
         Rdiv = self.R[self.namespace]
         R = Rdiv / ((2**15 / self.data)-1)
         To = 25 + 273.15
         Ro = 10000
-        B = self.B[self.namespace] #3380
+        B = self.B[self.namespace] # 3380
         Tinv = (1 / To) + (math.log(R/Ro) / B)
         T = (1 / Tinv) - 273.15
         T = (T * 1.8) + 32
@@ -68,7 +70,7 @@ class Packet:
         R = Rdiv / ((2**15 / self.data)-1)
         To = 25 + 273.15
         Ro = 10000
-        B = Blist[self.namespace] #3380
+        B = Blist[self.namespace] # 3380
         Tinv = (1 / To) + (math.log(R/Ro) / B)
         T = (1 / Tinv) - 273.15
         T = (T * 1.8) + 32
@@ -78,12 +80,12 @@ class Packet:
         R = Rdiv / ((2**15 / self.data)-1)
         To = 25 + 273.15
         Ro = 10000
-        B = Blist[self.namespace] #3380
+        B = Blist[self.namespace] # 3380
         Tinv = (1 / To) + (math.log(R/Ro) / B)
         T = (1 / Tinv) - 273.15
         return T
     def ascurrent(self):
-        if(self.data & 0x8000): #the current can be negative
+        if(self.data & 0x8000): # the current can be negative
             self.data = -0x10000 + self.data
         return self.data * 4.096 / 2**15
     def print_packet(self):
@@ -97,4 +99,4 @@ class Packet:
             if self.write == True:
                 print('Wrote: Cell '+str(self.namespace)+', Addr '+"{0:#4X}".format(self.addr & 0x7F))
             else:
-                print('Read: Cell '+str(self.namespace)+', Addr '+"{0:#4X}".format(self.addr & 0x7F)+': '+str(self.data))   
+                print('Read: Cell '+str(self.namespace)+', Addr '+"{0:#4X}".format(self.addr & 0x7F)+': '+str(self.data))

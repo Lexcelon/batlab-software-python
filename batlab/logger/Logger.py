@@ -15,10 +15,10 @@ class Logger:
         thread = threading.Thread(target=self.thd_logger)
         thread.daemon = True
         thread.start()
-                
+
     def log(self,logstring,filename):
         self.msgqueue.put([logstring,filename])
-                
+
     def thd_logger(self):
         while(True):
             while(self.msgqueue.qsize() > 0):

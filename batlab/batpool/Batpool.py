@@ -35,7 +35,7 @@ class Batpool:
                 logging.info("found Batlab on "+portinfo.device)
                 ports.append(portinfo.device)
         return ports
-        
+
     def batpool_mgr(self):
         while(True):
             portlist = self.get_ports()
@@ -57,7 +57,7 @@ class Batpool:
                     del self.batpool[port]
                 return
             sleep(0.5)
-            
+
     def active_exists(self):
         if self.batactive == '':
             logging.info('No Batlab Currently Set As Active')
@@ -67,7 +67,7 @@ class Batpool:
         else:
             logging.info('Batlab on ' + self.batactive + ' not found')
             return False
-            
+
     def quit(self):
-        self.quitevt.set() #tries to tell all of the Batlabs to stop the tests
+        self.quitevt.set() # tries to tell all of the Batlabs to stop the tests
         sleep(0.5)

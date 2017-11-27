@@ -7,7 +7,7 @@ if rootDirectory not in sys.path:
 
 import batlab
 
-class TestBatlab(unittest.TestCase):
+class TestBatlabGeneral(unittest.TestCase):
     def test_tests_are_running(self):
         self.assertEqual(True, True)
 
