@@ -9,7 +9,7 @@ if "%SPHINXBUILD%" == "" (
 )
 set SOURCEDIR=source
 set BUILDDIR=build
-set SPHINXPROJ=batlab
+set SPHINXPROJ=batlab-software-python
 
 if "%1" == "" goto help
 

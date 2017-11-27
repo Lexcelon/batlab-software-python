@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# batlab documentation build configuration file, created by
+# batlab-software-python documentation build configuration file, created by
 # sphinx-quickstart on Mon Nov 27 10:02:37 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -49,7 +49,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'batlab'
+project = 'batlab-software-python'
 copyright = '2017, Lexcelon, LLC'
 author = 'Lexcelon, LLC'
 
@@ -115,7 +115,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'batlabdoc'
+htmlhelp_basename = 'batlab-software-pythondoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -142,7 +142,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'batlab.tex', 'batlab Documentation',
+    (master_doc, 'batlab-software-python.tex', 'batlab-software-python Documentation',
      'Lexcelon, LLC', 'manual'),
 ]
 
@@ -152,7 +152,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'batlab', 'batlab Documentation',
+    (master_doc, 'batlab-software-python', 'batlab-software-python Documentation',
      [author], 1)
 ]
 
@@ -163,8 +163,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'batlab', 'batlab Documentation',
-     author, 'batlab', 'One line description of project.',
+    (master_doc, 'batlab-software-python', 'batlab-software-python Documentation',
+     author, 'batlab-software-python', 'One line description of project.',
      'Miscellaneous'),
 ]
 
