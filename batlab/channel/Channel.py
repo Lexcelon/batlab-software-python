@@ -74,8 +74,10 @@ class Channel:
 
         # Actually start the test
         if(self.test_type == TT_CYCLE):
-            self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.chrg_rate).assetpoint())
+            self.bat.write(self.slot,CURRENT_SETPOINT,0)
             self.bat.write(self.slot,MODE,MODE_CHARGE)
+            sleep(0.010)
+            self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.chrg_rate).assetpoint())
             self.test_state = TS_PRECHARGE
         else: # Simple Discharge Test
             self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.dischrg_rate).assetpoint())
@@ -219,8 +221,11 @@ class Channel:
                 self.pulse_charge_off_time = datetime.datetime.now()
                 self.trickle_engaged = False
 
-                self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.chrg_rate).assetpoint())
+                self.bat.write(self.slot,CURRENT_SETPOINT,0)
                 self.bat.write(self.slot,MODE,MODE_CHARGE)
+                sleep(0.010)
+                self.bat.write(self.slot,CURRENT_SETPOINT,encoder.Encoder(self.settings.chrg_rate).assetpoint())
+                
 
         elif self.test_state == TS_CHARGE:
             # handle feature to pulse charge the cell

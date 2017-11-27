@@ -225,7 +225,14 @@ def batlab_parse_cmd(cmd,bp):
                         return
                     if(len(p) > 2):
                         b.write(cell,CURRENT_SETPOINT,encoder.Encoder(eval(p[2])).assetpoint())
+                    b.write(cell,ERROR,0)
+                    
+                    #in <= V3 firmware, a race condition exists between the charge relay and the current setpoint. We need to wait 10ms for the relay to click.
+                    sp = b.read(cell,CURRENT_SETPOINT).data
+                    b.write(cell,CURRENT_SETPOINT,0)
                     b.write(cell,MODE,MODE_CHARGE)
+                    sleep(0.01)
+                    b.write(cell,CURRENT_SETPOINT,sp)
                 except:
                     print("Invalid Usage.")
 
@@ -237,6 +244,7 @@ def batlab_parse_cmd(cmd,bp):
                         return
                     if(len(p) > 2):
                         b.write(UNIT,SINE_FREQ,encoder.Encoder(eval(p[2])).asfreq())
+                    b.write(cell,ERROR,0)
                     b.write(cell,MODE,MODE_IMPEDANCE)
                 except:
                     print("Invalid Usage.")
@@ -247,8 +255,10 @@ def batlab_parse_cmd(cmd,bp):
                     # if b.channel[cell].is_testing():
                     # print("Ignoring command - test running on this channel")
                     # return
+                    
                     if(len(p) > 2):
                         b.write(cell,CURRENT_SETPOINT,encoder.Encoder(eval(p[2])).assetpoint())
+                    b.write(cell,ERROR,0)
                     b.write(cell,MODE,MODE_DISCHARGE)
                 except:
                     print("Invalid Usage.")
@@ -258,18 +268,23 @@ def batlab_parse_cmd(cmd,bp):
                     try:
                         cell = int(eval(p[1]))
                         b.write(cell,MODE,MODE_STOPPED)
+                        b.write(cell,ERROR,0)
                         b.channel[cell].end_test()
                     except:
                         print("Invalid Usage.")
                 else:
                     b.write(CELL0,MODE,MODE_STOPPED)
                     b.channel[CELL0].end_test()
+                    b.write(CELL0,ERROR,0)
                     b.write(CELL1,MODE,MODE_STOPPED)
                     b.channel[CELL1].end_test()
+                    b.write(CELL1,ERROR,0)
                     b.write(CELL2,MODE,MODE_STOPPED)
                     b.channel[CELL2].end_test()
+                    b.write(CELL2,ERROR,0)
                     b.write(CELL3,MODE,MODE_STOPPED)
                     b.channel[CELL3].end_test()
+                    b.write(CELL3,ERROR,0)
 
             if p[0] == 'reset':
                 if(len(p) > 1):

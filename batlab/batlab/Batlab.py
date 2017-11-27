@@ -136,6 +136,10 @@ class Batlab:
         '''patch for firmware < 3 ... current compensation bug in firmware, so moving the control loop to software.'''
         ''' we do this by now keeping track of the setpoint in software, and then the control loop tweaks the firmware setpoint'''
         if addr == CURRENT_SETPOINT and namespace < 4:
+            if value > 575: #maximum value to write to this register
+                value = 575
+            if value < 0:
+                value = 0
             self.setpoints[namespace] = value
         '''make sure we cant turn on the current compensation control loop in firmware'''
         if addr == SETTINGS and namespace == UNIT:
