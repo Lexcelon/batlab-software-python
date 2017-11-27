@@ -5,7 +5,11 @@ batlab-software-python
 	   :target: https://travis-ci.org/Lexcelon/batlab-software-python
 
 .. image:: https://badge.fury.io/py/batlab.svg
-	       :target: https://badge.fury.io/py/batlab
+	   :target: https://badge.fury.io/py/batlab
+
+.. image:: https://readthedocs.org/projects/batlab-software-python/badge/?version=latest
+	   :target: http://batlab-software-python.readthedocs.io/en/latest/?badge=latest
+	   :alt: Documentation Status
 
 Python Library and example command line interface script to interact with a pool of Batlabs over USB. This tool is designed for hobbyists and more advanced users who would like to incorporate the Batlab hardware in their own cell testing workflow or environment.
 
