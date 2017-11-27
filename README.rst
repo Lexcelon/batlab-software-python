@@ -1,5 +1,5 @@
-batlab-software-python
-======================
+Batlab library for Python
+=========================
 
 .. image:: https://travis-ci.org/Lexcelon/batlab-software-python.svg?branch=master
 	   :target: https://travis-ci.org/Lexcelon/batlab-software-python
@@ -11,19 +11,68 @@ batlab-software-python
 	   :target: http://batlab-software-python.readthedocs.io/en/latest/?badge=latest
 	   :alt: Documentation Status
 
-Python Library and example command line interface script to interact with a pool of Batlabs over USB. This tool is designed for hobbyists and more advanced users who would like to incorporate the Batlab hardware in their own cell testing workflow or environment.
+``batlab-software-python`` is a Python library and example command line script to interact with a pool of Batlabs over USB. This tool is designed for hobbyists and more advanced users who would like to incorporate the Batlab hardware in their own cell testing workflow or environment.
 
-The following source files have been provided:
+Getting Started
+---------------
 
-* batlab.py - The Batlab Library
-* batlabutil.py - An example script utilizing the library
-* testmgr.py - Added functionality that adds the concept of a channel that runs a test workflow.
-* constants.py
+Requirements
+~~~~~~~~~~~~
 
-Batlab API - batlab.py
-----------------------
+Python >=3.4 is currently supported by this module.
 
-The Batlab Library allows users to manage connections and read and write commands to a pool of Batlabs connected over a USB interface.
+Python >=2.7 is not yet supported.
+
+Installation
+~~~~~~~~~~~~
+
+To install the latest release you can use `pip <https://pip.pypa.io/en/stable/>`_:
+
+```
+pip install batlab
+```
+
+To upgrade, you can run:
+
+``pip install batlab --upgrade`` or ``pip install batlab -U``.
+
+Documentation
+-------------
+
+Deployment
+----------
+
+Contributing
+------------
+
+When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the owners of this repository before making a change.
+
+Git branching model
+~~~~~~~~~~~~~~~~~~~
+
+We follow the development model described `here <http://nvie.com/posts/a-successful-git-branching-model/>`_. Anything in the ``master`` branch is considered production. Most work happens in the ``develop`` branch or in a feature branch that is merged into ``develop`` before being merged into ``master``.
+
+Documenting
+~~~~~~~~~~~
+
+
+
+Running tests
+~~~~~~~~~~~~~
+
+License
+-------
+
+Acknowledgements
+----------------
+
+
+
+
+
+
+
+
 
 settings class
 ~~~~~~~~~~~~~~
