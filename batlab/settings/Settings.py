@@ -2,6 +2,33 @@ import logging
 import json
 
 class Settings:
+    """Holds information the test manager uses to run tests on a cell.
+
+    The Settings class contains information the test manager needs to run tests on a cell. The general usage is that settings will be specified in a JSON settings file and then loaded into the program to be used for tests.
+
+    Attributes:
+        acceptableImpedanceThreshold
+        batlabCellPlaylistFileVersion
+        cellPlaylistName
+        chargeCurrentSafetyCutoff
+        chargeRate
+        chargeTemperatureCutoff
+        dischargeCurrentSafetyCutoff
+        dischargeRate
+        dischargeTemperatureCutoff
+        highVoltageCutoff
+        impedanceReportingPeriod
+        lowVoltageCutoff
+        numMeasurementCycles
+        numWarmupCycles
+        reportingPeriod
+        restPeriod
+        sineWaveFrequency
+        sineWaveMagnitude
+        storageDischarge
+        storageDischargeVoltage
+    """
+    
     def __init__(self):
         self.jsonsettings = None
         self.acceptable_impedance_threshold = 1.0
