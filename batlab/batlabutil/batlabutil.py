@@ -2,7 +2,7 @@ from time import sleep, ctime, time
 from builtins import input
 import logging
 
-from batlab import batpool, batlab, encoder
+from batlab import batpool, func, encoder
 from batlab.constants import *
 
 def batlabutil():
@@ -163,7 +163,7 @@ def batlab_parse_cmd(cmd,bp):
                         cl = b.read(iter,CHARGEL).data
                         ch = b.read(iter,CHARGEH).data
                         b.write(UNIT,LOCK,LOCK_UNLOCKED)
-                        c = '{:6.0f}'.format(batlab.ascharge(cl + (ch << 16)))
+                        c = '{:6.0f}'.format(func.ascharge(cl + (ch << 16)))
                         mode = b.read(iter,MODE).asmode()
                         err = b.read(iter,ERROR).aserr()
                         sp = b.read(iter,CURRENT_SETPOINT).assetpoint()

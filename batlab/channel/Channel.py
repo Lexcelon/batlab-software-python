@@ -1,7 +1,6 @@
 from batlab.constants import *
 
-import batlab
-from batlab import encoder, batlab
+from batlab import encoder, func
 from time import sleep
 import datetime
 import threading
@@ -327,7 +326,7 @@ class Channel:
                         t = self.bat.read(self.slot,TEMPERATURE).astemperature_c(self.bat.R,self.bat.B)
                         self.bat.write(UNIT,LOCK,LOCK_LOCKED)
                         q = self.bat.read(self.slot,CHARGEH).data * 65536 + self.bat.read(self.slot,CHARGEL).data
-                        q = batlab.ascharge(q)
+                        q = func.ascharge(q)
                         self.bat.write(UNIT,LOCK,LOCK_UNLOCKED)
                         e = q * self.vavg
                         mode = self.bat.read(self.slot,MODE).data

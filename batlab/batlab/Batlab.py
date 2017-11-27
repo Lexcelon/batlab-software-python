@@ -18,9 +18,6 @@ except ImportError:
     import queue as queue
     from urllib.request import urlopen
 
-def ascharge(data):
-    return ((6 * (data / 2**15) ) * 4.096 / 9.765625)
-
 # Holds an instance of 1 Batlab. Pass in a COM port
 class Batlab:
     def __init__(self,port=None,logger=None,settings=None):
