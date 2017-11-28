@@ -1,4 +1,4 @@
-from . import batlab
+from . import batlabclass
 from . import batlabutil
 from . import batpool
 from . import channel
