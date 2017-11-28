@@ -90,6 +90,7 @@ Then, update ``setup.py`` and ``docs/source/conf.py`` with the new version numbe
 Then create a tagged release and push everything to GitHub:
 
 ```
+$ git commit -am "rev version number to 0.100.56"
 $ git tag v0.100.56
 $ git push origin develop
 $ git push --tags
