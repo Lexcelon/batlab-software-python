@@ -38,6 +38,22 @@ Documentation
 
 Documentation for this library is hosted at `Read the Docs <https://batlab-software-python.readthedocs.io/en/latest/?badge=latest>`_.
 
+Usage
+-----
+
+The library can be imported into your own programs, or you may use the provided example Batlab Utility Script.
+
+Batlab Utility Script
+~~~~~~~~~~~~~~~~~~~~~
+
+The Batlab Utility Script allows users to perform basic interactions with a pool of connected Batlab units through a simple command-line interface.
+
+To run the script, make sure the ``batlab`` package is installed and then run:
+
+``$ batlabutil``
+
+Type ``help`` to display the list of commands in the script and how to use them. The intention for the script is to serve as an example for users to write their own battery cell test software using the Batlab library.
+
 Contributing
 ------------
 

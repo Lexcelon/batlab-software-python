@@ -9,6 +9,8 @@ except ImportError:
     import queue as queue
 
 class Logger:
+    """Manages access to files for writing test log information."""
+    
     # cell name,batlab name,channel,timestamp,voltage,current,temperature,impedance,energy,charge
     def __init__(self):
         self.msgqueue = queue.Queue()
@@ -17,6 +19,7 @@ class Logger:
         thread.start()
 
     def log(self,logstring,filename):
+        """Writes entry 'logstring' into file 'filename'."""
         self.msgqueue.put([logstring,filename])
 
     def thd_logger(self):

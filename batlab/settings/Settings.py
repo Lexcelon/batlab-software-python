@@ -7,29 +7,30 @@ class Settings:
     The Settings class contains information the test manager needs to run tests on a cell. The general usage is that settings will be specified in a JSON settings file and then loaded into the program to be used for tests.
 
     Attributes:
-        acceptableImpedanceThreshold
+        acceptableImpedanceThreshold: Ohms
         batlabCellPlaylistFileVersion
         cellPlaylistName
-        chargeCurrentSafetyCutoff
-        chargeRate
-        chargeTemperatureCutoff
-        dischargeCurrentSafetyCutoff
-        dischargeRate
-        dischargeTemperatureCutoff
-        highVoltageCutoff
-        impedanceReportingPeriod
-        lowVoltageCutoff
+        chargeCurrentSafetyCutoff: Amps
+        chargeRate: Amps
+        chargeTemperatureCutoff: Celsius
+        dischargeCurrentSafetyCutoff: Amps
+        dischargeRate: Amps
+        dischargeTemperatureCutoff: Celsius
+        highVoltageCutoff: Volt
+        impedanceReportingPeriod: Seconds
+        lowVoltageCutoff: Volts
         numMeasurementCycles
         numWarmupCycles
-        reportingPeriod
-        restPeriod
-        sineWaveFrequency
+        reportingPeriod: Seconds
+        restPeriod: Seconds
+        sineWaveFrequency: Hz
         sineWaveMagnitude
-        storageDischarge
-        storageDischargeVoltage
+        storageDischarge: Boolean
+        storageDischargeVoltage: Volts
     """
     
     def __init__(self):
+        """Initializes Settings with builtin default values."""
         self.jsonsettings = None
         self.acceptable_impedance_threshold = 1.0
         self.batlab_cell_playlist_file_version = "0.0.1"
@@ -78,6 +79,7 @@ class Settings:
         return True
 
     def load(self,fhandle):
+        """Loads information contained in a test JSON file into the Settings instance."""
         self.jsonsettings = json.load(fhandle)
         for key,value in self.jsonsettings.items():
             if key == "acceptableImpedanceThreshold":

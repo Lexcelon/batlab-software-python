@@ -14,6 +14,19 @@ from batlab import logger, settings, batlab
 
 # Manage a pool of connected batlabs by maintaining a list of plugged-in systems
 class Batpool:
+    """Manage a pool of connected batlabs by maintaining a list of plugged-in systems.
+
+    The ``batpool`` class spins up a thread that manages connections to Batlab devices connected over USB. It monitors the USB ports and maintains a dict of connected Batlabs called the ``batpool``. The contents of this variable are Batlab class instances and they are looked up in the dict by their Serial Port addresses. Pyserial is used in the batlab to manage connections to the computer's serial interface.
+
+    A second variable, ``batactive`` is used to store the serial port name of the currently active Batlab, that is, the Batlab to which commands are currently directed.
+
+    Attributes:
+        msgqueue: Queue of string messages describing plug-unplug events
+        batpool: Dictionary of Batlab instances by Serial Port Addresses (e.g. COM5)
+        batactive: Serial port of active Batlab
+        logger: A Logger object that manages access to a log filename
+        settings: A Settings object that contains test settings imported from a JSON file
+    """
     def __init__(self):
         self.msgqueue = queue.Queue()
         self.batpool = dict()
@@ -59,6 +72,7 @@ class Batpool:
             sleep(0.5)
 
     def active_exists(self):
+        """Returns True if the Batlab described by the ``batactive`` port is connected."""
         if self.batactive == '':
             logging.info('No Batlab Currently Set As Active')
             return False
