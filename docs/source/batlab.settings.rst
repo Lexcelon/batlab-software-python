@@ -7,7 +7,7 @@ Submodules
 batlab\.settings\.Settings module
 ---------------------------------
 
-.. autoclass:: batlab.settings.Settings
+.. automodule:: batlab.settings.Settings
     :members:
     :undoc-members:
     :show-inheritance:
