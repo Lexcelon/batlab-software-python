@@ -18,8 +18,20 @@ except ImportError:
     import queue as queue
     from urllib.request import urlopen
 
-# Holds an instance of 1 Batlab. Pass in a COM port
 class Batlab:
+    """Holds an instance of one Batlab.
+
+    The class represents one 'Batlab' unit connected over the USB serial port. The batpool class automatically creates the ``batlab`` instances when a Batlab is plugged in, and destroyed once unplugged. If a Batlab instance is supplied with a port name on creation, it will automatically connect to the port. Otherwise, the user will need to call the ``connect`` method.
+
+    Attributes:
+        port: Holds serial port name
+        is_open: Corresponds to pyserial ``is_open``
+        B: List of 'B' temperature calibration constants for each cell
+        R: List of 'R' temperature calibration constants for each cell
+        logger: Logger object that handles file IO
+        settings: Settings object that contains test settings loaded from a JSON file
+        channel[4]: 4-list of ``Channel`` objects. Each channel can manage a test run on it.
+    """
     def __init__(self,port=None,logger=None,settings=None):
         self.sn = ''
         self.ver = ''
@@ -40,6 +52,7 @@ class Batlab:
         self.channel = [channel.Channel(self,0), channel.Channel(self,1), channel.Channel(self,2), channel.Channel(self,3)]
 
     def connect(self):
+        """Connects to serial port in ``port`` variable. Spins off a receiver thread to receive incoming packets and add them to a message queue."""
         while True:
             try:
                 self.ser = serial.Serial(None,38400,timeout=2,writeTimeout=0)
@@ -77,6 +90,7 @@ class Batlab:
             logging.info("The Batlab is in the bootloader")
 
     def disconnect(self):
+        """Gracefully closes serial port and kills reader thread."""
         self.killevt.set()
         self.ser.close()
 
@@ -89,6 +103,11 @@ class Batlab:
             return 0
 
     def read(self,namespace,addr):
+        """Queries a Batlab register specified by the given namespace and register address. The communication architecture spec with all of the namespace and register names, functions, and values can be found in the Batlab Programmer's User Manual.
+
+        Returns:
+            A ``packet`` instance containing the read data.
+        """
         if not (namespace in NAMESPACE_LIST):
             print("Namespace Invalid")
             return None
@@ -122,6 +141,11 @@ class Batlab:
             return None
 
     def write(self,namespace,addr,value):
+        """Writes the value ``value`` to the register address ``addr`` in namespace ``namespace``. This is the general register write function for the Batlab.
+
+        Returns:
+            A 'write' packet.
+        """
         if not (namespace in NAMESPACE_LIST):
             print("Namespace Invalid")
             return None
@@ -130,15 +154,15 @@ class Batlab:
             return None
         if(value & 0x8000): #convert large numbers into negative numbers because the to_bytes call is expecting an int16
             value = -0x10000 + value
-        '''patch for firmware < 3 ... current compensation bug in firmware, so moving the control loop to software.'''
-        ''' we do this by now keeping track of the setpoint in software, and then the control loop tweaks the firmware setpoint'''
+        # patch for firmware < 3 ... current compensation bug in firmware, so moving the control loop to software.
+        # we do this by now keeping track of the setpoint in software, and then the control loop tweaks the firmware setpoint
         if addr == CURRENT_SETPOINT and namespace < 4:
             if value > 575: #maximum value to write to this register
                 value = 575
             if value < 0:
                 value = 0
             self.setpoints[namespace] = value
-        '''make sure we cant turn on the current compensation control loop in firmware'''
+        # make sure we cant turn on the current compensation control loop in firmware
         if addr == SETTINGS and namespace == UNIT:
             value &= ~0x0003
 
@@ -173,8 +197,8 @@ class Batlab:
         except:
             return None
 
-    # Retrieve stream packet from queue
     def get_stream(self):
+        """Retrieve stream packet from queue."""
         q = None
         while self.qstream.qsize() > 0:
             q = self.qstream.get()
@@ -182,14 +206,19 @@ class Batlab:
 
     # Macros
     def set_current(self,cell,current):
+        """A macro for setting the CURRENT_SETPOINT to a certain current for a given cell."""
         self.write(cell,CURRENT_SETPOINT,int((current/5.0)*640))
+        
     def sn(self):
         a = self.read(UNIT,0x00).data
         b = self.read(UNIT,0x01).data
         return a + b*65536
+    
     def ver(self):
         return self.read(0x04,0x02).data
+    
     def impedance(self,cell):
+        """A macro for taking an impedance measurement on a particular cell."""
         mode = self.read(cell,MODE).data #get previous state
         # start impedance measurment
         self.write(cell,MODE,MODE_IMPEDANCE)
@@ -210,6 +239,7 @@ class Batlab:
         return z
 
     def firmware_bootload(self,filename):
+        """Writes the firmware image given by the specified filename to the Batlab. This may take a few minutes."""
         # Check to make sure image is at least the right size
         try:
             with open(filename, "rb") as f:
@@ -252,6 +282,11 @@ class Batlab:
             return False
 
     def firmware_check(self,flag_download):
+        """Checks GitHub for the latest firmware version, and downloads it if ``flag_download`` is True.
+        
+        Returns:
+            A 2-list: [version, filename].
+        """
         # Download latest version and get version number
         urlpath =urlopen('https://github.com/Lexcelon/batlab-firmware-measure/releases/latest/')
         string = urlpath.read().decode('utf-8')
@@ -276,6 +311,7 @@ class Batlab:
         return [version,filename]
 
     def firmware_update(self):
+        """Checks if the firmware on the Batlab is outdated, and updates the firmware if it needs updating. This may take several minutes."""
         version,filename = self.firmware_check(True)
         loadedver = self.read(UNIT,FIRMWARE_VER).data
         print("Latest Version is",version,". Current version is",loadedver)

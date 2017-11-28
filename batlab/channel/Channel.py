@@ -14,9 +14,17 @@ except ImportError:
     # Python 3.x
     import queue as queue
 
-# Channel class - represents a slot for a cell in a batlab
 class Channel:
+    """Represents one slot or 'channel' in a Batlab.
 
+    Attributes:
+        bat: The Batlab object to which this channel belongs
+        slot: Integer value of the slot/channel in the Batlab that this object represents
+        name: Name of the cell currently installed in the slot
+        test_type: You can use this to specify a Cycle Test or a simple discharge test
+        test_state: State machine variable for test state. Note that the test state machine is launched in another thread and continuously runs.
+        settings: Settings object containing the test settings
+    """
     def __init__(self,bat,slot):
         self.bat = bat
         self.slot = slot
@@ -38,20 +46,22 @@ class Channel:
         thread.start()
 
     def is_testing(self):
+        """Bool, returns False if the test_state is IDLE."""
         if self.test_state == TS_IDLE:
             return False
         else:
             return True
 
     def runtime(self):
+        """Time since test started."""
         return datetime.datetime.now() - self.start_time
-
 
     def end_test(self):
         self.test_state = TS_IDLE
         self.bat.write(self.slot,MODE,MODE_STOPPED)
 
     def start_test(self,cellname=None,test_type=None,timeout_time=None):
+        """Initialize the test state machine and start a test on this Batlab channel. First sets the Batlab to the settings in the ``settings`` data member."""
         self.settings = deepcopy(self.bat.settings)
 
         if cellname is not None:
@@ -112,6 +122,7 @@ class Channel:
 
 
     def log_lvl2(self,type):
+        """Logs 'level 2' test data to the log file and resets the voltage and current average and resets the charge counter back to zero."""
         # Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s)
         state = l_test_state[self.test_state]
         runtime = datetime.datetime.now() - self.last_lvl2_time
