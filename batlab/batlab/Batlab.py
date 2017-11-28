@@ -24,7 +24,7 @@ class Batlab:
     The class represents one 'Batlab' unit connected over the USB serial port. The batpool class automatically creates the ``batlab`` instances when a Batlab is plugged in, and destroyed once unplugged. If a Batlab instance is supplied with a port name on creation, it will automatically connect to the port. Otherwise, the user will need to call the ``connect`` method.
 
     Attributes:
-        port: Holds serial port nam
+        port: Holds serial port name
         is_open: Corresponds to pyserial ``is_open``
         B: List of 'B' temperature calibration constants for each cell
         R: List of 'R' temperature calibration constants for each cell

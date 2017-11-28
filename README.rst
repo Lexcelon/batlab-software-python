@@ -36,7 +36,7 @@ To upgrade, you can run:
 Documentation
 -------------
 
-Documentation for this library is hosted at `Read the Docs <https://batlab-software-python.readthedocs.io/en/latest/?badge=latest>`_.
+Documentation for this library is hosted at `Read the Docs <https://batlab-software-python.readthedocs.io/en/latest/?badge=latest>`_. Please go there to find this README as well as the available documentation for classes and methods within this library.
 
 Usage
 -----
@@ -67,7 +67,7 @@ We follow the development model described `here <http://nvie.com/posts/a-success
 Documenting
 ~~~~~~~~~~~
 
-
+Please document code (notably functions and classes) using doc strings according to the `Google Python Style Guide standards <https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments>`_. This will ensure that your notes are automatically picked up and included in the generated documentation.
 
 Running tests
 ~~~~~~~~~~~~~
@@ -80,6 +80,32 @@ Deployment
 ~~~~~~~~~~
 
 This library is deployed to `PyPi <https://pypi.python.org/pypi/batlab>`_. Builds are generated with `Travis CI <https://travis-ci.org/Lexcelon/batlab-software-python>`_ with each pushed commit. When a new tag is pushed or merged into ``master``, that build is automatically deployed to end users through PyPi.
+
+To publish a new version, the workflow might look like this. First make your changes:
+
+``$ git commit -am "some changes to the develop branch"``
+
+Then, update ``setup.py`` and ``docs/source/conf.py`` with the new version number (in this case we will use the example 0.100.56).
+
+Then create a tagged release and push everything to GitHub:
+
+```
+$ git tag v0.100.56
+$ git push origin develop
+$ git push --tags
+```
+
+Then you must wait a couple of minutes to make sure the build passes on Travis. If the build fails, you will not be able to merge the commit into ``master``. Once the build passes, you can merge into master and push. When merging, use ``--no-ff`` to preserve the commit and branching history:
+
+```
+$ git checkout master
+$ git merge --no-ff develop
+$ git merge v0.100.56
+$ git push origin master
+$ git push --tags
+```
+
+Changes should automatically roll out to PyPi, and any documentation included in your code will automatically roll out to Read the Docs.
 
 License
 -------
