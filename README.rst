@@ -27,11 +27,16 @@ Installation
 
 To install the latest release you can use `pip <https://pip.pypa.io/en/stable/>`_:
 
-``$ pip install batlab``
+.. code-block:: bash
 
-To upgrade, you can run:
+   $ pip install batlab
 
-``$ pip install batlab --upgrade`` or ``$ pip install batlab -U``.
+To upgrade, you can run either of:
+
+.. code-block:: bash
+
+   $ pip install batlab --upgrade
+   $ pip install batlab -U
 
 Documentation
 -------------
@@ -50,7 +55,9 @@ The Batlab Utility Script allows users to perform basic interactions with a pool
 
 To run the script, make sure the ``batlab`` package is installed and then run:
 
-``$ batlabutil``
+.. code-block:: bash
+
+   $ batlabutil
 
 Type ``help`` to display the list of commands in the script and how to use them. The intention for the script is to serve as an example for users to write their own battery cell test software using the Batlab library.
 
@@ -74,7 +81,9 @@ Running tests
 
 To run the unit tests, from the root directory run:
 
-``$ python setup.py test``
+.. code-block:: bash
+		
+   $ python setup.py test
 
 Deployment
 ~~~~~~~~~~
@@ -83,24 +92,25 @@ This library is deployed to `PyPi <https://pypi.python.org/pypi/batlab>`_. Build
 
 To publish a new version, the workflow might look like this. First make your changes:
 
-``$ git commit -am "some changes to the develop branch"``
+.. code-block:: bash
+
+   $ git commit -am "some changes to the develop branch"
 
 Then, update ``setup.py`` and ``docs/source/conf.py`` with the new version number (in this case we will use the example 0.100.56). Make a commit with these changes and push it to GitHub:
 
-``
-$ git commit -am "rev version number to 0.100.56"
-$ git push origin develop
-``
+.. code-block:: bash
+
+   $ git commit -am "rev version number to 0.100.56"
+   $ git push origin develop
 
 Then you must wait a couple of minutes to make sure the build passes on Travis. If the build fails, you will not be able to merge the commit into ``master``. Once the build passes, you can merge into master and push. When merging, use ``--no-ff`` to preserve the commit and branching history:
 
-``
-$ git checkout master
-$ git merge --no-ff develop
-$ git merge v0.100.56
-$ git push origin master
-$ git push --tags
-``
+.. code-block:: bash
+		
+   $ git checkout master
+   $ git merge --no-ff develop
+   $ git push origin master
+   $ git push --tags
 
 Changes should automatically roll out to PyPi, and any documentation included in your code will automatically roll out to Read the Docs.
 
