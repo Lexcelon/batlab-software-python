@@ -103,12 +103,13 @@ Then, update ``setup.py`` and ``docs/source/conf.py`` with the new version numbe
    $ git commit -am "rev version number to 0.100.56"
    $ git push origin develop
 
-Then you must wait a couple of minutes to make sure the build passes on Travis. If the build fails, you will not be able to merge the commit into ``master``. Once the build passes, you can merge into master and push. When merging, use ``--no-ff`` to preserve the commit and branching history:
+Then you must wait a couple of minutes to make sure the build passes on Travis. If the build fails, you will not be able to merge the commit into ``master``. Once the build passes, you can merge into master, create a tagged release and push. When merging, use ``--no-ff`` to preserve the commit and branching history:
 
 .. code-block:: bash
 		
    $ git checkout master
    $ git merge --no-ff develop
+   $ git tag v0.100.56
    $ git push origin master
    $ git push --tags
 
