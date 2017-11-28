@@ -85,26 +85,22 @@ To publish a new version, the workflow might look like this. First make your cha
 
 ``$ git commit -am "some changes to the develop branch"``
 
-Then, update ``setup.py`` and ``docs/source/conf.py`` with the new version number (in this case we will use the example 0.100.56).
+Then, update ``setup.py`` and ``docs/source/conf.py`` with the new version number (in this case we will use the example 0.100.56). Make a commit with these changes and push it to GitHub:
 
-Then create a tagged release and push everything to GitHub:
-
-```
+``
 $ git commit -am "rev version number to 0.100.56"
-$ git tag v0.100.56
 $ git push origin develop
-$ git push --tags
-```
+``
 
 Then you must wait a couple of minutes to make sure the build passes on Travis. If the build fails, you will not be able to merge the commit into ``master``. Once the build passes, you can merge into master and push. When merging, use ``--no-ff`` to preserve the commit and branching history:
 
-```
+``
 $ git checkout master
 $ git merge --no-ff develop
 $ git merge v0.100.56
 $ git push origin master
 $ git push --tags
-```
+``
 
 Changes should automatically roll out to PyPi, and any documentation included in your code will automatically roll out to Read the Docs.
 
