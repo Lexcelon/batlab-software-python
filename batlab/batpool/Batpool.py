@@ -10,7 +10,9 @@ except ImportError:
     # Python 3.x
     import queue as queue
 
-from batlab import logger, settings, batlabclass
+import batlab.logger
+import batlab.settings
+import batlab.batlabclass
 
 # Manage a pool of connected batlabs by maintaining a list of plugged-in systems
 class Batpool:
@@ -35,8 +37,8 @@ class Batpool:
         thread = threading.Thread(target=self.batpool_mgr)
         thread.daemon = True
         thread.start()
-        self.logger = logger.Logger()
-        self.settings = settings.Settings()
+        self.logger = batlab.logger.Logger()
+        self.settings = batlab.settings.Settings()
 
     def get_ports(self):
         portinfos = serial.tools.list_ports.comports()
@@ -54,7 +56,7 @@ class Batpool:
             portlist = self.get_ports()
             for port in portlist:
                 if port not in self.batpool:
-                    self.batpool[port] = batlabclass.Batlab(port,self.logger,self.settings)
+                    self.batpool[port] = batlab.batlabclass.Batlab(port,self.logger,self.settings)
                     self.msgqueue.put('Batlab on ' + port + ' connected')
                     if self.batactive == '':
                         self.batactive = port
