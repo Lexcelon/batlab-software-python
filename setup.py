@@ -14,6 +14,8 @@ setup(name='batlab',
 
       license='LGPL3',
       packages=['batlab'],
+      # Needed to include the source files from the MANIFEST
+      include_package_data=True,
       install_requires=['pyserial', 'future'],
       entry_points={
           'console_scripts': [
