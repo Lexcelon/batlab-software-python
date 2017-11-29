@@ -1,5 +1,6 @@
 from batlab.constants import *
-from batlab import channel, packet
+import batlab.channel
+import batlab.packet
 
 import serial
 from time import sleep
@@ -49,7 +50,7 @@ class Batlab:
         self.critical_read = threading.Lock()
         self.critical_section = threading.Lock()
         self.connect()
-        self.channel = [channel.Channel(self,0), channel.Channel(self,1), channel.Channel(self,2), channel.Channel(self,3)]
+        self.channel = [batlab.channel.Channel(self,0), batlab.channel.Channel(self,1), batlab.channel.Channel(self,2), batlab.channel.Channel(self,3)]
 
     def connect(self):
         """Connects to serial port in ``port`` variable. Spins off a receiver thread to receive incoming packets and add them to a message queue."""
@@ -113,7 +114,7 @@ class Batlab:
             return None
         try:
             with self.critical_read:
-                q = packet.Packet()
+                q = batlab.packet.Packet()
                 outctr = 0
                 while(True):
                     try:
@@ -343,7 +344,7 @@ class Batlab:
                         ctr = ctr + 1
                     if ctr == 20:
                         continue
-                    p = packet.Packet()
+                    p = batlab.packet.Packet()
                     p.timestamp = datetime.datetime.now()
                     p.type = 'RESPONSE'
                     p.namespace = inbuf[0]
@@ -360,7 +361,7 @@ class Batlab:
                         ctr = ctr + 1
                     if ctr == 20:
                         continue
-                    p = packet.Packet()
+                    p = batlab.packet.Packet()
                     p.timestamp = datetime.datetime.now()
                     p.namespace = inbuf[0]
                     if(inbuf[1] == 0):

@@ -2,11 +2,13 @@ from time import sleep, ctime, time
 from builtins import input
 import logging
 
-from batlab import batpool, func, encoder
+import batlab.batpool
+import batlab.func
+import batlab.encoder
 from batlab.constants import *
 
 def batlabutil():
-    bp = batpool.Batpool() # Create the Batpool
+    bp = batlab.batpool.Batpool() # Create the Batpool
     print('Batlab Utility Script')
     batlab_parse_cmd('help',bp)
     while(True):
@@ -163,7 +165,7 @@ def batlab_parse_cmd(cmd,bp):
                         cl = b.read(iter,CHARGEL).data
                         ch = b.read(iter,CHARGEH).data
                         b.write(UNIT,LOCK,LOCK_UNLOCKED)
-                        c = '{:6.0f}'.format(func.ascharge(cl + (ch << 16)))
+                        c = '{:6.0f}'.format(batlab.func.ascharge(cl + (ch << 16)))
                         mode = b.read(iter,MODE).asmode()
                         err = b.read(iter,ERROR).aserr()
                         sp = b.read(iter,CURRENT_SETPOINT).assetpoint()
@@ -204,7 +206,7 @@ def batlab_parse_cmd(cmd,bp):
             if p[0] == 'lowcurrent':
                 if len(p) > 1:
                     current = eval(p[1])
-                b.write(UNIT,ZERO_AMP_THRESH,encoder.Encoder(current).ascurrent())
+                b.write(UNIT,ZERO_AMP_THRESH,batlab.encoder.Encoder(current).ascurrent())
 
             if p[0] == 'impedance' and len(p) > 1:
                 try:
@@ -224,7 +226,7 @@ def batlab_parse_cmd(cmd,bp):
                         print("Ignoring command - test running on this channel")
                         return
                     if(len(p) > 2):
-                        b.write(cell,CURRENT_SETPOINT,encoder.Encoder(eval(p[2])).assetpoint())
+                        b.write(cell,CURRENT_SETPOINT,batlab.encoder.Encoder(eval(p[2])).assetpoint())
                     b.write(cell,ERROR,0)
                     
                     #in <= V3 firmware, a race condition exists between the charge relay and the current setpoint. We need to wait 10ms for the relay to click.
@@ -243,7 +245,7 @@ def batlab_parse_cmd(cmd,bp):
                         print("Ignoring command - test running on this channel")
                         return
                     if(len(p) > 2):
-                        b.write(UNIT,SINE_FREQ,encoder.Encoder(eval(p[2])).asfreq())
+                        b.write(UNIT,SINE_FREQ,batlab.encoder.Encoder(eval(p[2])).asfreq())
                     b.write(cell,ERROR,0)
                     b.write(cell,MODE,MODE_IMPEDANCE)
                 except:
@@ -257,7 +259,7 @@ def batlab_parse_cmd(cmd,bp):
                     # return
                     
                     if(len(p) > 2):
-                        b.write(cell,CURRENT_SETPOINT,encoder.Encoder(eval(p[2])).assetpoint())
+                        b.write(cell,CURRENT_SETPOINT,batlab.encoder.Encoder(eval(p[2])).assetpoint())
                     b.write(cell,ERROR,0)
                     b.write(cell,MODE,MODE_DISCHARGE)
                 except:
