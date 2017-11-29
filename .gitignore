@@ -10,4 +10,4 @@ build/lib/batlab/batlabutil.py
 build/lib/batlab/constants.py
 build/lib/batlab/testmgr.py
 /dist/
-*/build/*
+docs/build/
