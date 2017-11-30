@@ -15,9 +15,10 @@ def batlabutil():
         try:
             while bp.msgqueue.qsize() > 0: # get message from the Batpool message queue
                 print(bp.msgqueue.get()) # These messages relate to Batlab Plug/unplug events
-            cmd = input(">>>").rstrip()
+            cmd = input(">>> ").rstrip()
             batlab_parse_cmd(cmd,bp)
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, EOFError):
+            print()
             quit()
 
 def batlab_parse_cmd(cmd,bp):
