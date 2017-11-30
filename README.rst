@@ -18,9 +18,9 @@ Batlab library for Python
 Requirements
 ------------
 
-Python >=3.4 is currently supported by this module.
+Python >=3.4 is supported by this module.
 
-Python >=2.7 is not yet supported.
+Python 2 is not supported.
 
 Installation
 ------------
