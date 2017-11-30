@@ -73,12 +73,12 @@ class Settings:
         self.flag_ignore_safety_limits = False
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
 
-    def check(self, key, value, minval ,maxval ,variable):
+    def check(self, key, value, minval ,maxval, variable):
         if self.flag_ignore_safety_limits == True:
             return True
         if value < minval or value > maxval:
-            logging.warning(key, "with value", value, "is not safe for Lipo Cells.")
-            logging.warning("Defaulting to", variable)
+            logging.warning("{} with value {} is not safe for Lipo cells.".format(key, value))
+            logging.warning("Defaulting to {}".format(variable))
             return False
         return True
 
@@ -164,7 +164,8 @@ class Settings:
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
         self.view()
 
-    def view(self): # print out currently loaded settings
+    def view(self):
+        """Print out currently loaded settings."""
         print("Currently Loaded Test Settings -",self.logfile)
         print("===========================================================")
         print("cellPlaylistName             :",self.cell_playlist_name     )

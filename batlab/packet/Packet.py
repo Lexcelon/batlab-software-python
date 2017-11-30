@@ -139,9 +139,9 @@ class Packet:
     def print_packet(self):
         if(self.type == 'RESPONSE'):
             if self.write == True:
-                logging.info('Wrote: Cell '+str(self.namespace)+', Addr '+"{0:#4X}".format(self.addr & 0x7F))
+                logging.info("Wrote: Cell "+str(self.namespace)+", Addr "+"{0:#4X}".format(self.addr & 0x7F))
             else:
-                logging.info('Read: Cell '+str(self.namespace)+', Addr '+"{0:#4X}".format(self.addr & 0x7F)+': '+str(self.data))
+                logging.info("Read: Cell "+str(self.namespace)+", Addr "+"{0:#4X}".format(self.addr & 0x7F)+": "+str(self.data))
                 
     def display(self):
         """Prints out the basic info about the packet transaction ### charge function."""
