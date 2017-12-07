@@ -78,14 +78,14 @@ def batlab_parse_cmd(cmd,bp):
                 print(port,bat.sn,'*Active*',':')
                 for aa in range(0,4):
                     if bat.channel[aa].is_testing():
-                        print('    Channel ',aa,': TESTING',bat.channel[aa].name,'Runtime:',bat.channel[aa].runtime(),'State:',bat.channel[aa].state)
+                        print('    Channel ',aa,': TESTING',bat.channel[aa].name,'Runtime:',bat.channel[aa].runtime(),'State:',bat.channel[aa].state,'State Runtime:',bat.channel[aa].runtime_cycle(),'Cycle Number:',bat.channel[aa].cycle_number())
                     else:
                         print('    Channel ',aa,': IDLE')
             else:
                 print(port,bat.sn,':')
                 for aa in range(0,4):
                     if bat.channel[aa].is_testing():
-                        print('    Channel ',aa,': TESTING',bat.channel[aa].name,'Runtime:',bat.channel[aa].runtime(),'State:',bat.channel[aa].state)
+                        print('    Channel ',aa,': TESTING',bat.channel[aa].name,'Runtime:',bat.channel[aa].runtime(),'State:',bat.channel[aa].state,'State Runtime:',bat.channel[aa].runtime_cycle(),'Cycle Number:',bat.channel[aa].cycle_number())
                     else:
                         print('    Channel ',aa,': IDLE')
 
@@ -162,6 +162,7 @@ def batlab_parse_cmd(cmd,bp):
                         v = '{:.4f}'.format(b.read(iter,VOLTAGE).asvoltage())
                         i = '{:.4f}'.format(b.read(iter,CURRENT).ascurrent())
                         t = '{:2.0f}'.format(b.read(iter,TEMPERATURE).astemperature(b.R,b.B))
+                        tc = '{:2.0f}'.format((float(t)-32)*5.0/9.0)
                         b.write(UNIT,LOCK,LOCK_LOCKED)
                         cl = b.read(iter,CHARGEL).data
                         ch = b.read(iter,CHARGEH).data
@@ -171,11 +172,11 @@ def batlab_parse_cmd(cmd,bp):
                         err = b.read(iter,ERROR).aserr()
                         sp = b.read(iter,CURRENT_SETPOINT).assetpoint()
                         if mode == 'MODE_STOPPED':
-                            print('CELL'+str(iter)+':',v,'V','0.0000','A',t,'degF',c,'Coulombs',mode,'-',err)
+                            print('CELL'+str(iter)+':',v,'V','0.0000','A',t,tc,'degF/C',c,'Coulombs',mode,'-',err)
                         elif sp == 0 or mode == 'MODE_IDLE' or mode == 'MODE_NO_CELL':
-                            print('CELL'+str(iter)+':',v,'V','0.0000','A',t,'degF',c,'Coulombs',mode)
+                            print('CELL'+str(iter)+':',v,'V','0.0000','A',t,tc,'degF/C',c,'Coulombs',mode)
                         else:
-                            print('CELL'+str(iter)+':',v,'V',i,'A',t,'degF',c,'Coulombs',mode)
+                            print('CELL'+str(iter)+':',v,'V',i,'A',t,tc,'degF/C',c,'Coulombs',mode)
                 except:
                     print("Invalid Usage.")
 

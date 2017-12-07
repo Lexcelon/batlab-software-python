@@ -41,6 +41,7 @@ class Settings:
         self.cell_playlist_name =         "DefaultPlaylist"
         self.chrg_current_cutoff =        4.096
         self.chrg_rate =                  2.0
+        self.prechrg_rate =               2.0
         self.chrg_tmp_cutoff =            50
         self.dischrg_current_cutoff =     4.096
         self.dischrg_rate =               2.0
@@ -98,6 +99,9 @@ class Settings:
             if key == "chargeRate":
                 if self.check(key,value,0,4.0,self.chrg_rate):
                     self.chrg_rate = value
+            if key == "prechargeRate":
+                if self.check(key,value,0,4.0,self.prechrg_rate):
+                    self.prechrg_rate = value
             if key == "chargeTemperatureCutoff":
                 if self.check(key,value,-60,80,self.chrg_tmp_cutoff):
                     self.chrg_tmp_cutoff = value
@@ -171,6 +175,7 @@ class Settings:
         print("cellPlaylistName             :",self.cell_playlist_name     )
         print("chargeCurrentSafetyCutoff    :",self.chrg_current_cutoff    )
         print("chargeRate                   :",self.chrg_rate              )
+        print("prechargeRate                :",self.prechrg_rate           )
         print("chargeTemperatureCutoff      :",self.chrg_tmp_cutoff        )
         print("dischargeCurrentSafetyCutoff :",self.dischrg_current_cutoff )
         print("dischargeRate                :",self.dischrg_rate           )

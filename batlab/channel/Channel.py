@@ -57,6 +57,14 @@ class Channel:
         """Time since test started."""
         return datetime.datetime.now() - self.start_time
 
+    def runtime_cycle(self):
+        """Time since this test step started"""
+        return datetime.datetime.now() - self.last_lvl2_time
+
+    def cycle_number(self):
+        """Number of charge/discharge cycles completed"""
+        return self.current_cycle
+
     def end_test(self):
         self.test_state = TS_IDLE
         self.bat.write(self.slot,MODE,MODE_STOPPED)
@@ -87,7 +95,7 @@ class Channel:
             self.bat.write(self.slot,CURRENT_SETPOINT,0)
             self.bat.write(self.slot,MODE,MODE_CHARGE)
             sleep(0.010)
-            self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.chrg_rate).assetpoint())
+            self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.prechrg_rate).assetpoint())
             self.test_state = TS_PRECHARGE
         else: # Simple Discharge Test
             self.bat.write(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.dischrg_rate).assetpoint())
