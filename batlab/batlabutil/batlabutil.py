@@ -227,20 +227,36 @@ def batlab_parse_cmd(cmd,bp):
 
                 if p[0] == 'charge' and len(p) > 1:
                     try:
-                        cell = int(eval(p[1]))
-                        if b.channel[cell].is_testing():
-                            print("Ignoring command - test running on this channel")
-                            return
-                        if(len(p) > 2):
-                            b.write(cell,CURRENT_SETPOINT,batlab.encoder.Encoder(eval(p[2])).assetpoint())
-                        b.write(cell,ERROR,0)
-                        
-                        #in <= V3 firmware, a race condition exists between the charge relay and the current setpoint. We need to wait 10ms for the relay to click.
-                        sp = b.read(cell,CURRENT_SETPOINT).data
-                        b.write(cell,CURRENT_SETPOINT,0)
-                        b.write(cell,MODE,MODE_CHARGE)
-                        sleep(0.01)
-                        b.write(cell,CURRENT_SETPOINT,sp)
+                        if str(p[1]) == 'all':
+                            for cell in range(0,4):
+                                if b.channel[cell].is_testing():
+                                    print("Ignoring command - test running on this channel")
+                                    continue
+                                if(len(p) > 2):
+                                    b.write(cell,CURRENT_SETPOINT,batlab.encoder.Encoder(eval(p[2])).assetpoint())
+                                b.write(cell,ERROR,0)
+                                
+                                #in <= V3 firmware, a race condition exists between the charge relay and the current setpoint. We need to wait 10ms for the relay to click.
+                                sp = b.read(cell,CURRENT_SETPOINT).data
+                                b.write(cell,CURRENT_SETPOINT,0)
+                                b.write(cell,MODE,MODE_CHARGE)
+                                sleep(0.01)
+                                b.write(cell,CURRENT_SETPOINT,sp)
+                        else:
+                            cell = int(eval(p[1]))
+                            if b.channel[cell].is_testing():
+                                print("Ignoring command - test running on this channel")
+                                return
+                            if(len(p) > 2):
+                                b.write(cell,CURRENT_SETPOINT,batlab.encoder.Encoder(eval(p[2])).assetpoint())
+                            b.write(cell,ERROR,0)
+                            
+                            #in <= V3 firmware, a race condition exists between the charge relay and the current setpoint. We need to wait 10ms for the relay to click.
+                            sp = b.read(cell,CURRENT_SETPOINT).data
+                            b.write(cell,CURRENT_SETPOINT,0)
+                            b.write(cell,MODE,MODE_CHARGE)
+                            sleep(0.01)
+                            b.write(cell,CURRENT_SETPOINT,sp)
                     except:
                         print("Invalid Usage.")
 
@@ -259,15 +275,31 @@ def batlab_parse_cmd(cmd,bp):
 
                 if p[0] == 'discharge' and len(p) > 1:
                     try:
-                        cell = int(eval(p[1]))
-                        # if b.channel[cell].is_testing():
-                        # print("Ignoring command - test running on this channel")
-                        # return
+                        if str(p[1]) == 'all':
+                            if(len(p) > 2):
+                                b.write(0,CURRENT_SETPOINT,batlab.encoder.Encoder(eval(p[2])).assetpoint())
+                                b.write(1,CURRENT_SETPOINT,batlab.encoder.Encoder(eval(p[2])).assetpoint())
+                                b.write(2,CURRENT_SETPOINT,batlab.encoder.Encoder(eval(p[2])).assetpoint())
+                                b.write(3,CURRENT_SETPOINT,batlab.encoder.Encoder(eval(p[2])).assetpoint())
+                            b.write(0,ERROR,0)
+                            b.write(1,ERROR,0)
+                            b.write(2,ERROR,0)
+                            b.write(3,ERROR,0)
+                            b.write(0,MODE,MODE_DISCHARGE)
+                            b.write(1,MODE,MODE_DISCHARGE)
+                            b.write(2,MODE,MODE_DISCHARGE)
+                            b.write(3,MODE,MODE_DISCHARGE)
                         
-                        if(len(p) > 2):
-                            b.write(cell,CURRENT_SETPOINT,batlab.encoder.Encoder(eval(p[2])).assetpoint())
-                        b.write(cell,ERROR,0)
-                        b.write(cell,MODE,MODE_DISCHARGE)
+                        else:
+                            cell = int(eval(p[1]))
+                            # if b.channel[cell].is_testing():
+                            # print("Ignoring command - test running on this channel")
+                            # return
+                            
+                            if(len(p) > 2):
+                                b.write(cell,CURRENT_SETPOINT,batlab.encoder.Encoder(eval(p[2])).assetpoint())
+                            b.write(cell,ERROR,0)
+                            b.write(cell,MODE,MODE_DISCHARGE)
                     except:
                         print("Invalid Usage.")
 
@@ -328,11 +360,22 @@ def batlab_parse_cmd(cmd,bp):
                     TT_DISCHARGE = 0
                     TT_CYCLE = 1
                     try:
-                        cell = int(eval(p[1]))
-                        if b.channel[cell].is_testing():
-                            print("Can't start test - Test is already running on this channel")
-                            return
-                        b.channel[cell].start_test(p[2],TT_CYCLE)
+                        if p[1] == 'all':
+                            if len(p) > 5:
+                                for cell in range(0,4):
+                                    if b.channel[cell].is_testing():
+                                        print("Can't start test - Test is already running on this channel")
+                                        continue
+                                    b.channel[cell].start_test(p[2+cell],TT_CYCLE)
+                            else:
+                                print("Invalid Usage.")
+                                return
+                        else:
+                            cell = int(eval(p[1]))
+                            if b.channel[cell].is_testing():
+                                print("Can't start test - Test is already running on this channel")
+                                return
+                            b.channel[cell].start_test(p[2],TT_CYCLE)
                     except:
                         print("Invalid Usage.")
 
