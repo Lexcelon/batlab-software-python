@@ -36,6 +36,7 @@ class Channel:
         self.test_state = TS_IDLE
         # test control variables
         self.start_time = datetime.datetime.now()
+        self.killevt = threading.Event()
 
         self.settings = self.bat.settings
         self.state = 'IDLE'
@@ -295,6 +296,8 @@ class Channel:
     def thd_channel(self):
         while(True):
             try:
+                if self.killevt.is_set(): #stop the thread if the batlab object goes out of scope
+                    return
                 if self.bat.settings is None:
                     sleep(1)
                     continue

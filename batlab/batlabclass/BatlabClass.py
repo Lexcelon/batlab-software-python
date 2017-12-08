@@ -92,6 +92,8 @@ class Batlab:
 
     def disconnect(self):
         """Gracefully closes serial port and kills reader thread."""
+        for ch in self.channel:
+            ch.killevt.set()
         self.killevt.set()
         self.ser.close()
 
@@ -116,7 +118,7 @@ class Batlab:
             with self.critical_read:
                 q = batlab.packet.Packet()
                 outctr = 0
-                while(True):
+                while(self.ser.is_open):
                     try:
                         self.ser.write((0xAA).to_bytes(1,byteorder='big'))
                         self.ser.write(namespace.to_bytes(1,byteorder='big'))
@@ -138,6 +140,9 @@ class Batlab:
                         outctr = outctr + 1
                     except:
                         continue
+                q.valid = False
+                q.data = float('nan')
+                return q
         except:
             return None
 
@@ -174,7 +179,7 @@ class Batlab:
                 namespace = int(namespace)
                 addr = int(addr)
                 value = int(value)
-                while(True):
+                while(self.ser.is_open):
                     try:
                         self.ser.write((0xAA).to_bytes(1,byteorder='big'))
                         self.ser.write(namespace.to_bytes(1,byteorder='big'))
@@ -191,10 +196,14 @@ class Batlab:
                             return q
                         if( outctr > 20 ):
                             q.valid = False
+                            q.data = float('nan')
                             return q
                         outctr = outctr + 1
                     except:
                         continue
+                q.valid = False
+                q.data = float('nan')
+                return q
         except:
             return None
 
