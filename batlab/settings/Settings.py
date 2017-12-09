@@ -70,9 +70,11 @@ class Settings:
         self.pulse_charge_off_time          = 10
         self.pulse_charge_off_rate          = 0
         self.pulse_discharge_off_rate       = 0
+        self.individual_cell_logs           = 0
 
         self.flag_ignore_safety_limits = False
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
+        self.cell_logfile = 'batlab-log_' + self.cell_playlist_name + '_'
 
     def check(self, key, value, minval ,maxval, variable):
         if self.flag_ignore_safety_limits == True:
@@ -164,8 +166,11 @@ class Settings:
                 self.pulse_charge_off_time = value
             if key == "pulseDischrgOffRate": 
                 self.pulse_discharge_off_rate = value
+            if key == "individualCellLogs": 
+                self.individual_cell_logs = value
 
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
+        self.cell_logfile = 'batlab-log_' + self.cell_playlist_name + '_'
         self.view()
 
     def view(self):
@@ -202,3 +207,4 @@ class Settings:
         print("pulseChrgOnTime              :",self.pulse_charge_on_time           )
         print("pulseChrgOffTime             :",self.pulse_charge_off_time          )
         print("pulseDischrgOffRate          :",self.pulse_discharge_off_rate       )
+        print("individualCellLogs           :",self.individual_cell_logs           )

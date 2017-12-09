@@ -359,25 +359,25 @@ def batlab_parse_cmd(cmd,bp):
                 if p[0] == 'cycletest' and len(p) > 2:
                     TT_DISCHARGE = 0
                     TT_CYCLE = 1
-                    try:
-                        if p[1] == 'all':
-                            if len(p) > 5:
-                                for cell in range(0,4):
-                                    if b.channel[cell].is_testing():
-                                        print("Can't start test - Test is already running on this channel")
-                                        continue
-                                    b.channel[cell].start_test(p[2+cell],TT_CYCLE)
-                            else:
-                                print("Invalid Usage.")
-                                return
+                    #try:
+                    if p[1] == 'all':
+                        if len(p) > 5:
+                            for cell in range(0,4):
+                                if b.channel[cell].is_testing():
+                                    print("Can't start test - Test is already running on this channel")
+                                    continue
+                                b.channel[cell].start_test(p[2+cell],TT_CYCLE)
                         else:
-                            cell = int(eval(p[1]))
-                            if b.channel[cell].is_testing():
-                                print("Can't start test - Test is already running on this channel")
-                                return
-                            b.channel[cell].start_test(p[2],TT_CYCLE)
-                    except:
-                        print("Invalid Usage.")
+                            print("Invalid Usage.")
+                            return
+                    else:
+                        cell = int(eval(p[1]))
+                        if b.channel[cell].is_testing():
+                            print("Can't start test - Test is already running on this channel")
+                            return
+                        b.channel[cell].start_test(p[2],TT_CYCLE)
+                    #except:
+                    #    print("Invalid Usage.")
 
                 if p[0] == 'dischargetest' and len(p) > 2:
                     TT_DISCHARGE = 0
