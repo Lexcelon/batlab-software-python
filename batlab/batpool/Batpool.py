@@ -32,6 +32,7 @@ class Batpool:
     def __init__(self):
         self.msgqueue = queue.Queue()
         self.batpool = dict()
+        self.batlocks = dict()
         self.batactive = ''
         self.quitevt = threading.Event()
         thread = threading.Thread(target=self.batpool_mgr)
@@ -56,6 +57,7 @@ class Batpool:
             portlist = self.get_ports()
             for port in portlist:
                 if port not in self.batpool:
+                    self.batlocks[port] = threading.Lock()
                     self.batpool[port] = batlab.batlabclass.Batlab(port,self.logger,self.settings)
                     self.msgqueue.put('Batlab on ' + port + ' connected')
                     if self.batactive == '':
@@ -64,12 +66,16 @@ class Batpool:
             for port in list(self.batpool.keys()):
                 if port not in portlist:
                     self.batpool[port].disconnect()
-                    del self.batpool[port]
+                    with self.batlocks[port]:
+                        del self.batpool[port]
+                    del self.batlocks[port]
                     self.msgqueue.put('Batlab on ' + port + ' disconnected')
             if self.quitevt.is_set():
                 for port in list(self.batpool.keys()):
-                    self.batpool[port].disconnect()
-                    del self.batpool[port]
+                    with self.batlocks[port]:
+                        self.batpool[port].disconnect()
+                        del self.batpool[port]
+                    del self.batlocks[port]
                 return
             sleep(0.5)
 

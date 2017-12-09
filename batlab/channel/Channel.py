@@ -36,6 +36,7 @@ class Channel:
         self.test_state = TS_IDLE
         # test control variables
         self.start_time = datetime.datetime.now()
+        self.killevt = threading.Event()
 
         self.settings = self.bat.settings
         self.state = 'IDLE'
@@ -78,6 +79,12 @@ class Channel:
         if test_type is not None:
             self.test_type = test_type
         self.timeout_time = timeout_time
+        
+        
+        #print the header for the individual cell logfiles if needed
+        if self.settings.individual_cell_logs != 0:
+            logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s)"
+            self.bat.logger.log(logfile_headerstr,self.settings.cell_logfile + self.name + '.csv')
 
         # Initialize the test settings
         self.bat.write(self.slot,MODE,MODE_IDLE)
@@ -295,6 +302,8 @@ class Channel:
     def thd_channel(self):
         while(True):
             try:
+                if self.killevt.is_set(): #stop the thread if the batlab object goes out of scope
+                    return
                 if self.bat.settings is None:
                     sleep(1)
                     continue
@@ -366,7 +375,12 @@ class Channel:
                             logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,'
                         else:
                             logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,'
-                        self.bat.logger.log(logstr,self.settings.logfile)
+                        
+                        if self.settings.individual_cell_logs == 0:
+                            self.bat.logger.log(logstr,self.settings.logfile)
+                        else:
+                            self.bat.logger.log(logstr,self.settings.cell_logfile + self.name + '.csv')
+                        
 
                         # actually run the test state machine - decides what to do next
                         self.state_machine_cycletest(mode,v)

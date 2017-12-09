@@ -30,7 +30,6 @@ class Packet:
         self.write = None
         self.R = [1500,1500,1500,1500]
         self.B = [3380,3380,3380,3380]
-        
     def set_temps(Rlist,Blist):
         """Deprecated."""
         for i in range(0,4):
@@ -47,6 +46,8 @@ class Packet:
         
     def asvoltage(self):
         """Represents voltage ``data`` as a floating point voltage."""
+        if(math.isnan(self.data)):
+            return float(('nan'))
         if(self.data & 0x8000): # the voltage can be negative
             self.data = -0x10000 + self.data
         flt = float(self.data * 4.5 / 2**15)
@@ -81,20 +82,25 @@ class Packet:
         
     def aserr(self):
         """Represents error reg bit field as a string of the error flags."""
+        if(math.isnan(self.data)):
+            return 'ERR_NONE'
         for i in range(0,6):
             if self.data & (1 << i):
                 return ERR_LIST[i]
         return 'ERR_NONE'
     
     def astemperature(self):
-        Rdiv = self.R[self.namespace]
-        R = Rdiv / ((2**15 / self.data)-1)
-        To = 25 + 273.15
-        Ro = 10000
-        B = self.B[self.namespace] # 3380
-        Tinv = (1 / To) + (math.log(R/Ro) / B)
-        T = (1 / Tinv) - 273.15
-        T = (T * 1.8) + 32
+        try:
+            Rdiv = self.R[self.namespace]
+            R = Rdiv / ((2**15 / self.data)-1)
+            To = 25 + 273.15
+            Ro = 10000
+            B = self.B[self.namespace] # 3380
+            Tinv = (1 / To) + (math.log(R/Ro) / B)
+            T = (1 / Tinv) - 273.15
+            T = (T * 1.8) + 32
+        except:
+            T = float('nan')
         return T
     
     def astemperature(self,Rlist,Blist):
@@ -104,14 +110,18 @@ class Packet:
             Rlist: 4 list of 'R' calibration values needed to interpret temp
             Blist: 4 list of 'B' calibration values needed to interpret temp
         """
-        Rdiv = Rlist[self.namespace]
-        R = Rdiv / ((2**15 / self.data)-1)
-        To = 25 + 273.15
-        Ro = 10000
-        B = Blist[self.namespace] # 3380
-        Tinv = (1 / To) + (math.log(R/Ro) / B)
-        T = (1 / Tinv) - 273.15
-        T = (T * 1.8) + 32
+        try:
+            Rdiv = Rlist[self.namespace]
+            R = Rdiv / ((2**15 / self.data)-1)
+            To = 25 + 273.15
+            Ro = 10000
+            B = Blist[self.namespace] # 3380
+            Tinv = (1 / To) + (math.log(R/Ro) / B)
+            T = (1 / Tinv) - 273.15
+            T = (T * 1.8) + 32
+        
+        except:
+            T = float('nan')
         return T
     
     def astemperature_c(self,Rlist,Blist):
@@ -121,16 +131,21 @@ class Packet:
             Rlist: 4 list of 'R' calibration values needed to interpret temp
             Blist: 4 list of 'B' calibration values needed to interpret temp
         """
-        Rdiv = Rlist[self.namespace]
-        R = Rdiv / ((2**15 / self.data)-1)
-        To = 25 + 273.15
-        Ro = 10000
-        B = Blist[self.namespace] # 3380
-        Tinv = (1 / To) + (math.log(R/Ro) / B)
-        T = (1 / Tinv) - 273.15
+        try:
+            Rdiv = Rlist[self.namespace]
+            R = Rdiv / ((2**15 / self.data)-1)
+            To = 25 + 273.15
+            Ro = 10000
+            B = Blist[self.namespace] # 3380
+            Tinv = (1 / To) + (math.log(R/Ro) / B)
+            T = (1 / Tinv) - 273.15
+        except:
+            T = float('nan')
         return T
     
     def ascurrent(self):
+        if(math.isnan(self.data)):
+            return float(('nan'))
         """Represents current measurement as float current in Amps."""
         if(self.data & 0x8000): # the current can be negative
             self.data = -0x10000 + self.data
