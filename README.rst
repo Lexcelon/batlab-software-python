@@ -1,8 +1,15 @@
 Batlab library for Python
 =========================
 
+[master] 
 .. image:: https://travis-ci.org/Lexcelon/batlab-software-python.svg?branch=master
 	   :target: https://travis-ci.org/Lexcelon/batlab-software-python
+
+[develop]
+.. image:: https://travis-ci.org/Lexcelon/batlab-software-python.svg?branch=develop
+      :target: https://travis-ci.org/Lexcelon/batlab-software-python
+
+|
 
 .. image:: https://badge.fury.io/py/batlab.svg
 	   :target: https://badge.fury.io/py/batlab
