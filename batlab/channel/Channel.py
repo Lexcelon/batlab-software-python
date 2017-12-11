@@ -7,6 +7,7 @@ import datetime
 import threading
 from copy import deepcopy
 import traceback
+import math
 
 try:
     # Python 2.x
@@ -338,10 +339,11 @@ class Channel:
                         if i > 4.02:
                             op_raw -= 1
                         if sp > 4.5:
-                            op_raw = 575    
-                        # writes to the firmware setpoitn will update the software setpoint, so we need to restore the software setpoint after we write 
-                        self.bat.write(self.slot,CURRENT_SETPOINT,op_raw)
-                        self.bat.setpoints[self.slot] = sp_raw
+                            op_raw = 575
+                        if not math.isnan(op_raw):
+                            # writes to the firmware setpoitn will update the software setpoint, so we need to restore the software setpoint after we write 
+                            self.bat.write(self.slot,CURRENT_SETPOINT,op_raw)
+                            self.bat.setpoints[self.slot] = sp_raw
 
                     # actual test manager stuff --- take measurements and control test state machine 
                     if self.test_state != TS_IDLE:

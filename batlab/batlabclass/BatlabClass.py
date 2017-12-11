@@ -9,6 +9,7 @@ import os
 import re
 import logging
 import threading
+import math
 
 try:
     # Python 2.x
@@ -154,6 +155,9 @@ class Batlab:
         """
         if not (namespace in NAMESPACE_LIST):
             print("Namespace Invalid")
+            return None
+        if(math.isnan(value)):
+            print("Write Value invalid - nan")
             return None
         if value > 65535 or value < -65535:
             print("Invalid value: 16 bit value expected")
