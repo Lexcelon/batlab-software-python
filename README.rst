@@ -9,8 +9,6 @@ Batlab library for Python
 .. |develop-build| image:: https://travis-ci.org/Lexcelon/batlab-software-python.svg?branch=develop
       :target: https://travis-ci.org/Lexcelon/batlab-software-python
 
-|
-
 .. image:: https://badge.fury.io/py/batlab.svg
 	   :target: https://badge.fury.io/py/batlab
 
