@@ -10,6 +10,7 @@ import re
 import logging
 import threading
 import math
+import traceback
 
 try:
     # Python 2.x
@@ -35,6 +36,8 @@ class Batlab:
         channel[4]: 4-list of ``Channel`` objects. Each channel can manage a test run on it.
     """
     def __init__(self,port=None,logger=None,settings=None):
+        self.initialized = False
+        self.error = False
         self.sn = ''
         self.ver = ''
         self.port = port
@@ -50,27 +53,34 @@ class Batlab:
         self.critical_write = threading.Lock()
         self.critical_read = threading.Lock()
         self.critical_section = threading.Lock()
-        self.connect()
-        self.channel = [batlab.channel.Channel(self,0), batlab.channel.Channel(self,1), batlab.channel.Channel(self,2), batlab.channel.Channel(self,3)]
+        self.channel = None
+        if self.connect() == 0:
+            self.channel = [batlab.channel.Channel(self,0), batlab.channel.Channel(self,1), batlab.channel.Channel(self,2), batlab.channel.Channel(self,3)]
+        else:
+            self.error = True
+        self.initialized = True
 
     def connect(self):
         """Connects to serial port in ``port`` variable. Spins off a receiver thread to receive incoming packets and add them to a message queue."""
-        while True:
-            try:
-                self.ser = serial.Serial(None,38400,timeout=2,writeTimeout=0)
-                self.ser.port = self.port
-                self.ser.close()
-                self.ser.open()
-            except:
-                logging.warning("Could not connect to port")
-                return -1
-            break
+        try:
+            self.ser = serial.Serial(None,38400,timeout=2,writeTimeout=0)
+            self.ser.port = self.port
+            self.ser.close()
+            self.ser.open()
+        except:
+            logging.warning("Could not connect to port")
+            return -1
         self.is_open = self.ser.is_open
         thread = threading.Thread(target=self.thd_read) #start receiver thread
         thread.daemon = True
         thread.start()
+        #print("batlab:",thread.getName())
         if self.read(0x05,0x01).value() == 257: #then we're not in the bootloader
             # self.write(UNIT,SETTINGS,SET_TRIM_OUTPUT)  -- no longer do this because it is buggy in V3 Firmware.
+            self.write(CELL0,MODE,MODE_IDLE)
+            self.write(CELL1,MODE,MODE_IDLE)
+            self.write(CELL2,MODE,MODE_IDLE)
+            self.write(CELL3,MODE,MODE_IDLE)
             self.write(UNIT,SETTINGS,0)
             self.R[0] = self.read(0x00,0x16).data
             self.R[1] = self.read(0x01,0x16).data
@@ -87,14 +97,21 @@ class Batlab:
             a = self.read(0x04,0x00).data
             b = self.read(0x04,0x01).data
             self.sn = str(a + b*65536)
+            if(math.isnan(a) or math.isnan(b)):
+                logging.warning("Serial Number retrieval failed. Trying Again")
+                a = self.read(0x04,0x00).data
+                b = self.read(0x04,0x01).data
+            
             self.ver = str(self.read(0x04,0x02).data)
         else:
             logging.info("The Batlab is in the bootloader")
+        return 0
 
     def disconnect(self):
         """Gracefully closes serial port and kills reader thread."""
-        for ch in self.channel:
-            ch.killevt.set()
+        if self.channel is not None:
+            for ch in self.channel:
+                ch.killevt.set()
         self.killevt.set()
         self.ser.close()
 
@@ -112,13 +129,16 @@ class Batlab:
         Returns:
             A ``packet`` instance containing the read data.
         """
+        q = batlab.packet.Packet()
         if not (namespace in NAMESPACE_LIST):
             print("Namespace Invalid")
-            return None
+            q.valid = False
+            q.data = float('nan')
+            return q
         try:
             with self.critical_read:
-                q = batlab.packet.Packet()
                 outctr = 0
+                exceptctr = 0
                 while(self.ser.is_open):
                     try:
                         self.ser.write((0xAA).to_bytes(1,byteorder='big'))
@@ -137,15 +157,24 @@ class Batlab:
                             return q
                         if outctr > 50:
                             q.valid = False
+                            q.data = float('nan')
                             return q
                         outctr = outctr + 1
                     except:
+                        if exceptctr > 20:
+                            #print('Exception on Batlab read...Continuing')
+                            #traceback.print_exc()
+                            break
+                        exceptctr += 1
+                        sleep(0.005)
                         continue
                 q.valid = False
                 q.data = float('nan')
                 return q
         except:
-            return None
+            q.valid = False
+            q.data = float('nan')
+            return q
 
     def write(self,namespace,addr,value):
         """Writes the value ``value`` to the register address ``addr`` in namespace ``namespace``. This is the general register write function for the Batlab.
@@ -153,15 +182,18 @@ class Batlab:
         Returns:
             A 'write' packet.
         """
+        failresponse = batlab.packet.Packet()
+        failresponse.valid = False
+        failresponse.data = float('nan')
         if not (namespace in NAMESPACE_LIST):
             print("Namespace Invalid")
-            return None
+            return failresponse
         if(math.isnan(value)):
             print("Write Value invalid - nan")
-            return None
+            return failresponse
         if value > 65535 or value < -65535:
             print("Invalid value: 16 bit value expected")
-            return None
+            return failresponse
         if(value & 0x8000): #convert large numbers into negative numbers because the to_bytes call is expecting an int16
             value = -0x10000 + value
         # patch for firmware < 3 ... current compensation bug in firmware, so moving the control loop to software.
@@ -180,6 +212,7 @@ class Batlab:
             with self.critical_write:
                 q = None
                 outctr = 0
+                exceptctr = 0
                 namespace = int(namespace)
                 addr = int(addr)
                 value = int(value)
@@ -204,12 +237,38 @@ class Batlab:
                             return q
                         outctr = outctr + 1
                     except:
+                        if exceptctr > 20:
+                            #print('Exception on Batlab write...Continuing')
+                            #traceback.print_exc()
+                            break
+                        exceptctr += 1
+                        sleep(0.005)
                         continue
                 q.valid = False
                 q.data = float('nan')
                 return q
         except:
-            return None
+            return failresponse
+            
+    def write_verify(self,namespace,addr,value):
+        """Writes the value ``value`` to the register address ``addr`` in namespace ``namespace``. Reads the register back and compares the result, Retries if they do not match.
+
+        Returns:
+            Returns True if results match, Returns False if timeout condition occurred
+        """
+        self.write(namespace,addr,value)
+        tmp = self.read(namespace,addr).data
+        ctr = 0
+        while(not (tmp == value)):
+            print("Register Write Error - Retrying",tmp,value)
+            self.write(namespace,addr,value)
+            tmp = self.read(namespace,addr)
+            sleep(0.005)
+            ctr += 1
+            if (ctr > 20):
+                return False
+                print("Unable to Write Register - CRITICAL FAILURE")
+        return True
 
     def get_stream(self):
         """Retrieve stream packet from queue."""

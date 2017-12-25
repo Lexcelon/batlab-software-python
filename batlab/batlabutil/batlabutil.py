@@ -6,6 +6,7 @@ import batlab.batpool
 import batlab.func
 import batlab.encoder
 from batlab.constants import *
+import threading
 
 def batlabutil():
     bp = batlab.batpool.Batpool() # Create the Batpool
@@ -70,7 +71,9 @@ def batlab_parse_cmd(cmd,bp):
 
 
     # FOLLOWING COMMANDS HELP YOU MANAGE THE CONTEXT - The Batlab specific commands only interact with one Batlab at a time - the 'Active' Batlab. But all are technically opened on the serial port
-
+    if p[0] == 'threads':
+        for t in threading.enumerate():
+            print(t.getName())
     if p[0] == 'list':
         print('PORT SERIAL ACTIVE')
         print('==================')
