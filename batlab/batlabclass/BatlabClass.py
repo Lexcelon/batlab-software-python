@@ -394,6 +394,63 @@ class Batlab:
             self.firmware_bootload(filename)
         else:
             print("Firmware is up to date.")
+            
+    def calibration_recover(self,filename):
+        """Method to re-write Non-volatile Memory (Calibration Constants) in case they got erased. supply filename containing 49 rows representing the 49 constants"""
+        value_list = []
+        try:
+            with open(filename, "r") as f:
+                for value in f:
+                    value_list.append(int(value))
+            if len(value_list) != 49:
+                print("File was corrupt. Expecting 49 integer values")
+                return False    
+        except:
+            print("File was missing or otherwise could not be read")
+            return False
+        valctr = 0
+        
+        
+        
+        #write the serial number
+        sn = value_list[valctr]
+        self.write(UNIT,SERIAL_NUM,sn % 65536)
+        self.write(UNIT,DEVICE_ID,sn // 65536)
+        valctr += 1
+        
+        #write everything else
+        for i in range(0,4):
+            self.write(i,CURRENT_CALIB_OFF ,value_list[valctr])
+            valctr += 1
+            self.write(i,CURRENT_CALIB_SCA ,value_list[valctr])
+            valctr += 1
+            self.write(i,CURR_LOWV_OFF     ,value_list[valctr])
+            valctr += 1
+            self.write(i,CURR_LOWV_SCA     ,value_list[valctr])
+            valctr += 1
+            self.write(i,CURR_LOWV_OFF_SCA ,value_list[valctr])
+            valctr += 1
+            self.write(i,TEMP_CALIB_R      ,value_list[valctr])
+            valctr += 1
+            self.write(i,TEMP_CALIB_B      ,value_list[valctr])
+            valctr += 1
+            self.write(i,CURRENT_CALIB_PP  ,value_list[valctr])
+            valctr += 1
+            self.write(i,VOLTAGE_CALIB_PP  ,value_list[valctr])
+            valctr += 1
+            self.write(i,CURR_CALIB_PP_OFF ,value_list[valctr])
+            valctr += 1
+            self.write(i,VOLT_CALIB_PP_OFF ,value_list[valctr])
+            valctr += 1
+        self.write(UNIT,VOLT_CH_CALIB_OFF,value_list[valctr])
+        valctr += 1
+        self.write(UNIT,VOLT_CH_CALIB_SCA,value_list[valctr])
+        valctr += 1
+        self.write(UNIT,VOLT_DC_CALIB_OFF,value_list[valctr])
+        valctr += 1
+        self.write(UNIT,VOLT_DC_CALIB_SCA,value_list[valctr])
+        valctr += 1
+
 
     # Reading thread - parses incoming packets and adds them to queues
     def thd_read(self):

@@ -358,6 +358,9 @@ def batlab_parse_cmd(cmd,bp):
                     if p[1] == 'check':
                         ver,filename = b.firmware_check(False) # firmware_check(True) checks AND downloads image
                         print("Latest version is:",ver)
+                
+                if p[0] == 'recover' and len(p) > 1:
+                    b.calibration_recover(p[1])
 
                 if p[0] == 'cycletest' and len(p) > 2:
                     TT_DISCHARGE = 0
