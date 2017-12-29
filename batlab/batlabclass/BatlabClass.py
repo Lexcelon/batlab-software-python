@@ -77,11 +77,11 @@ class Batlab:
         #print("batlab:",thread.getName())
         if self.read(0x05,0x01).value() == 257: #then we're not in the bootloader
             # self.write(UNIT,SETTINGS,SET_TRIM_OUTPUT)  -- no longer do this because it is buggy in V3 Firmware.
+            self.write(UNIT,WATCHDOG_TIMER,WDT_RESET) #do this so the watchdog is happy during these initialization commands
             self.write(CELL0,MODE,MODE_IDLE)
             self.write(CELL1,MODE,MODE_IDLE)
             self.write(CELL2,MODE,MODE_IDLE)
             self.write(CELL3,MODE,MODE_IDLE)
-            self.write(UNIT,SETTINGS,0)
             self.R[0] = self.read(0x00,0x16).data
             self.R[1] = self.read(0x01,0x16).data
             self.R[2] = self.read(0x02,0x16).data
@@ -103,6 +103,11 @@ class Batlab:
                 b = self.read(0x04,0x01).data
             
             self.ver = str(self.read(0x04,0x02).data)
+            
+            if int(self.ver) > 3:
+                self.write_verify(UNIT,SETTINGS,SET_WATCHDOG_TIMER) #this setting is only meaningful if the firmware version is 4 or greater.
+                self.write(UNIT,WATCHDOG_TIMER,WDT_RESET)
+                
         else:
             logging.info("The Batlab is in the bootloader")
         return 0
@@ -260,14 +265,15 @@ class Batlab:
         tmp = self.read(namespace,addr).data
         ctr = 0
         while(not (tmp == value)):
-            print("Register Write Error - Retrying",tmp,value)
+            print(datetime.datetime.now()," - Register Write Error - Retrying",tmp,value)
+            traceback.print_stack()
             self.write(namespace,addr,value)
-            tmp = self.read(namespace,addr)
+            tmp = self.read(namespace,addr).data
             sleep(0.005)
             ctr += 1
             if (ctr > 20):
-                return False
                 print("Unable to Write Register - CRITICAL FAILURE")
+                return False
         return True
 
     def get_stream(self):
@@ -310,6 +316,18 @@ class Batlab:
                 nowmode = self.read(cell,MODE)
 
         return z
+    
+    def charge(self,cell):
+        """A macro for taking a charge measurement that handles the case if the charge register rolls over in between high and low reads"""
+        ch = self.read(cell,CHARGEH).data
+        cl = self.read(cell,CHARGEL).data
+        chp = self.read(cell,CHARGEH).data
+        if chp == ch:
+            data = (ch << 16) + cl
+            return ((6.0 * data / 2**15 ) * 4.096 / 9.765625)
+        cl = self.read(cell,CHARGEL).data
+        data = (chp << 16) + cl
+        return ((6.0 * data / 2**15 ) * 4.096 / 9.765625)
 
     def firmware_bootload(self,filename):
         """Writes the firmware image given by the specified filename to the Batlab. This may take a few minutes."""

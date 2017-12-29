@@ -170,11 +170,8 @@ def batlab_parse_cmd(cmd,bp):
                             i = '{:.4f}'.format(b.read(iter,CURRENT).ascurrent())
                             t = '{:2.0f}'.format(b.read(iter,TEMPERATURE).astemperature(b.R,b.B))
                             tc = '{:2.0f}'.format((float(t)-32)*5.0/9.0)
-                            b.write(UNIT,LOCK,LOCK_LOCKED)
-                            cl = b.read(iter,CHARGEL).data
-                            ch = b.read(iter,CHARGEH).data
-                            b.write(UNIT,LOCK,LOCK_UNLOCKED)
-                            c = '{:6.0f}'.format(batlab.func.ascharge(cl + (ch << 16)))
+                            chg = b.charge(iter)
+                            c = '{:6.0f}'.format(chg)
                             mode = b.read(iter,MODE).asmode()
                             err = b.read(iter,ERROR).aserr()
                             sp = b.read(iter,CURRENT_SETPOINT).assetpoint()

@@ -96,8 +96,8 @@ class Channel:
         self.bat.write_verify(self.slot,CURRENT_LIMIT_DCHG,batlab.encoder.Encoder(self.settings.dischrg_current_cutoff).ascurrent())
         self.bat.write_verify(self.slot,TEMP_LIMIT_CHG,batlab.encoder.Encoder(self.settings.chrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
         self.bat.write_verify(self.slot,TEMP_LIMIT_DCHG,batlab.encoder.Encoder(self.settings.dischrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
-        self.bat.write_verify(self.slot,CHARGEH,0)
-        self.bat.write_verify(self.slot,CHARGEL,0)
+        self.bat.write(self.slot,CHARGEH,0)
+        #self.bat.write(self.slot,CHARGEL,0) # only need to write to one of the charge registers to clear them
 
         # Actually start the test
         if(self.test_type == TT_CYCLE):
@@ -153,8 +153,7 @@ class Channel:
         self.icnt = 0
         self.zcnt = 0
         self.temperature0 = self.bat.read(self.slot,TEMPERATURE).astemperature_c(self.bat.R,self.bat.B)
-        self.bat.write_verify(self.slot,CHARGEH,0)
-        self.bat.write_verify(self.slot,CHARGEL,0)
+        self.bat.write(self.slot,CHARGEH,0) #writing to chargeh automatically clears chargel
         sleep(2)
 
     def state_machine_cycletest(self,mode,v):
@@ -293,13 +292,14 @@ class Channel:
                         self.bat.write(self.slot,MODE,MODE_DISCHARGE)
                     else:
                         self.test_state = TS_IDLE
-                        print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot)
+                        print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot,', Time:',datetime.datetime.now())
 
         elif self.test_state == TS_POSTDISCHARGE:
             if mode == MODE_STOPPED or v < self.settings.storage_dischrg_volt:
                 self.log_lvl2("POSTDISCHARGE")
+                self.bat.write_verify(self.slot,MODE,MODE_IDLE)
                 self.test_state = TS_IDLE
-                print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot)
+                print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot,', Time:',datetime.datetime.now())
 
     def thd_channel(self):
         while(True):
@@ -345,6 +345,9 @@ class Channel:
                             # writes to the firmware setpoitn will update the software setpoint, so we need to restore the software setpoint after we write 
                             self.bat.write_verify(self.slot,CURRENT_SETPOINT,op_raw)
                             self.bat.setpoints[self.slot] = sp_raw
+                            
+                    #reset the batlab watchdog timer (shuts off current flow if it reaches 0 --- 256 to 0 in about 30 seconds)
+                    self.bat.write(UNIT,WATCHDOG_TIMER,WDT_RESET) #If firmware version is < 3, this command will not do anything
 
                     # actual test manager stuff --- take measurements and control test state machine 
                     if self.test_state != TS_IDLE:
@@ -356,10 +359,7 @@ class Channel:
                         self.icnt += 1
                         self.iavg += (i - self.iavg) / self.icnt
                         t = self.bat.read(self.slot,TEMPERATURE).astemperature_c(self.bat.R,self.bat.B)
-                        self.bat.write(UNIT,LOCK,LOCK_LOCKED)
-                        q = self.bat.read(self.slot,CHARGEH).data * 65536 + self.bat.read(self.slot,CHARGEL).data
-                        q = batlab.func.ascharge(q)
-                        self.bat.write(UNIT,LOCK,LOCK_UNLOCKED)
+                        q = self.bat.charge(self.slot) #self.bat.read(self.slot,CHARGEH).data * 65536 + self.bat.read(self.slot,CHARGEL).data
                         e = q * self.vavg
                         mode = self.bat.read(self.slot,MODE).data
                         err = self.bat.read(self.slot,ERROR).data

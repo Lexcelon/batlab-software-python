@@ -61,8 +61,9 @@ VOLT_DC_CALIB_OFF = 0x0D
 VOLT_DC_CALIB_SCA = 0x0E
 LOCK              = 0x0F
 ZERO_AMP_THRESH   = 0x10
+WATCHDOG_TIMER    = 0x11
 
-UNITREG_MAX = 0x10
+UNITREG_MAX = 0x11
 
 # COMMs register map
 LED0             = 0x00
@@ -105,6 +106,7 @@ STAT_BACKWARDS         = 0x0040
 STAT_NO_CELL           = 0x0080
 SET_TRIM_OUTPUT        = 0x0001
 SET_VCC_COMPENSATION   = 0x0002
+SET_WATCHDOG_TIMER     = 0x0004
 SET_DEBUG              = 0x8000
 LED_OFF                = 0x0000
 LED_BLIP               = 0x0001
@@ -115,6 +117,7 @@ LED_PWM                = 0x0005
 LED_RAMP_UP            = 0x0006
 LED_RAMP_DOWN          = 0x0007
 LED_SINE               = 0x0008
+WDT_RESET              = 255
 
 LOCK_LOCKED            = 0x0001
 LOCK_UNLOCKED          = 0x0000
