@@ -33,6 +33,10 @@ def batlab_parse_cmd(cmd,bp):
         print(' quit                              - Exit the program                          ')
         print(' help                              - show this help                            ')
         print(' constants                         - show the register and namespace names     ')
+        print('Global Batlab Commands                                                         ')
+        print(' global cycletest [c1 c2 ... cn]   - start test on all given cells,load batlabs')
+        print('                                   - by serial num order then by slot num asc  ')
+        print(' global measure                    - measure all cells on all connected batlabs')
         print('Active Batlab Test Commands                                                    ')
         print(' cycletest [cell] [cellname]       - Start cycle test using loaded settings    ')
         print(' cycletest all [cell0name c1 c2 c3]- Start cycle test using loaded settings    ')
@@ -112,9 +116,9 @@ def batlab_parse_cmd(cmd,bp):
                 fhandle.seek(0) #reset cursor back to beginning of file
                 print('Results File will be written to testResults/',bp.settings.logfile)
                 # Print the Header to the CSV file dictated by this settings file
-                logfile_headerstr = '"' + fhandle.read().replace('"','""') + '"' + ',,,,,,,,,,,,,,,,,,'
+                logfile_headerstr = '"' + fhandle.read().replace('"','""') + '"' + ',,,,,,,,,,,,,,,,,,,'
                 bp.logger.log(logfile_headerstr,bp.settings.logfile)
-                logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s)"
+                logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s),VCC (V)"
                 bp.logger.log(logfile_headerstr,bp.settings.logfile)
 
     if p[0] == 'view' and len(p) > 1:
@@ -125,6 +129,58 @@ def batlab_parse_cmd(cmd,bp):
         if p[1] == 'safety':
             bp.settings.flag_ignore_safety_limits = True
             logging.warning("Test Safety Limits Disabled")
+            
+            
+    if p[0] == 'global' and len(p) > 1:
+        if p[1] == 'cycletest': 
+            batlist = []
+            for port,bat in bp.batpool.items():
+                batlist.append(bat)
+            batlist.sort(key=lambda x: int(x.sn), reverse=False)
+            cell = 0
+            misses = 0
+            for bat in batlist:
+                with bat.critical_section:
+                    for slot in range(0,4):
+                        if (cell < len(p)-2): 
+                            if bat.channel[slot].is_testing():
+                                print("Can't start test - Test is already running on this channel")
+                                misses += 1
+                            elif bat.read(slot,MODE).data == MODE_NO_CELL or bat.read(slot,MODE).data == MODE_BACKWARDS:
+                                print("Can't start test - No Cell Detected")
+                                misses += 1
+                            else:
+                                bat.channel[slot].start_test(p[2+cell],1)
+                            cell += 1
+                        else:
+                            print("Started cycle test on",cell - misses,"cells")
+                            return
+                        
+        if p[1] == 'measure':
+            batlist = []
+            for port,bat in bp.batpool.items():
+                batlist.append(bat)
+            batlist.sort(key=lambda x: int(x.sn), reverse=False)
+            for bat in batlist:
+                with bat.critical_section:
+                    vc = '{:.4f}'.format(bat.read(UNIT,VCC).asvcc())
+                    print('Batlab',bat.sn,': VCC',vc,'V')
+                    for iter in range(0,4):
+                        v = '{:.4f}'.format(bat.read(iter,VOLTAGE).asvoltage())
+                        i = '{:.4f}'.format(bat.read(iter,CURRENT).ascurrent())
+                        t = '{:2.0f}'.format(bat.read(iter,TEMPERATURE).astemperature(bat.R,bat.B))
+                        tc = '{:2.0f}'.format((float(t)-32)*5.0/9.0)
+                        chg = bat.charge(iter)
+                        c = '{:6.0f}'.format(chg)
+                        mode = bat.read(iter,MODE).asmode()
+                        err = bat.read(iter,ERROR).aserr()
+                        sp = bat.read(iter,CURRENT_SETPOINT).assetpoint()
+                        if mode == 'MODE_STOPPED':
+                            print('   CELL'+str(iter)+':',v,'V','0.0000','A',t,tc,'degF/C',c,'Coulombs',mode,'-',err)
+                        elif sp == 0 or mode == 'MODE_IDLE' or mode == 'MODE_NO_CELL':
+                            print('   CELL'+str(iter)+':',v,'V','0.0000','A',t,tc,'degF/C',c,'Coulombs',mode)
+                        else:
+                            print('   CELL'+str(iter)+':',v,'V',i,'A',t,tc,'degF/C',c,'Coulombs',mode)
 
     # COMMANDS BELOW THIS LINE REFERENCE THE ACTIVE BATLAB
     if bp.active_exists(): #checks to make sure the bp.batpool[bp.batactive] exists
@@ -381,6 +437,7 @@ def batlab_parse_cmd(cmd,bp):
                         b.channel[cell].start_test(p[2],TT_CYCLE)
                     #except:
                     #    print("Invalid Usage.")
+                        
 
                 if p[0] == 'dischargetest' and len(p) > 2:
                     TT_DISCHARGE = 0

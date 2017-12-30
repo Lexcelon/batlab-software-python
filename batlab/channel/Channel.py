@@ -85,11 +85,14 @@ class Channel:
         
         #print the header for the individual cell logfiles if needed
         if self.settings.individual_cell_logs != 0:
-            logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s)"
+            logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s),VCC (V)"
             self.bat.logger.log(logfile_headerstr,self.settings.cell_logfile + self.name + '.csv')
 
         # Initialize the test settings
-        self.bat.write_verify(self.slot,MODE,MODE_IDLE)
+        self.bat.write(self.slot,MODE,MODE_IDLE)
+        if self.bat.read(self.slot,MODE).data != MODE_IDLE:
+            print("Test on",self.bat.sn,"cell",self.slot,"not started - no cell detected")
+            return #test is over ... 
         self.bat.write_verify(self.slot,VOLTAGE_LIMIT_CHG,batlab.encoder.Encoder(self.settings.high_volt_cutoff).asvoltage())
         self.bat.write_verify(self.slot,VOLTAGE_LIMIT_DCHG,batlab.encoder.Encoder(self.settings.low_volt_cutoff).asvoltage())
         self.bat.write_verify(self.slot,CURRENT_LIMIT_CHG,batlab.encoder.Encoder(self.settings.chrg_current_cutoff).ascurrent())
@@ -127,6 +130,11 @@ class Channel:
         self.e = 0
         self.deltat = 0
         self.current_cycle = 0
+        self.vcc = 5.0
+        self.vprev = 0.0
+        self.iprev = 0.0
+        self.verrorcnt = 0.0
+        
 
         # control variables for pulse discharge test
         self.pulse_discharge_on_time = 0
@@ -141,11 +149,11 @@ class Channel:
 
     def log_lvl2(self,type):
         """Logs 'level 2' test data to the log file and resets the voltage and current average and resets the charge counter back to zero."""
-        # Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s)
+        # Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s),VCC
         state = l_test_state[self.test_state]
         runtime = datetime.datetime.now() - self.last_lvl2_time
         self.last_lvl2_time = datetime.datetime.now()
-        logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(datetime.datetime.now()) + ',,,,,,,' + ',' + type + ',' + '{:.4f}'.format(self.q) + ',' + '{:.4f}'.format(self.e) + ',' + '{:.4f}'.format(self.zavg) + ',' + '{:.4f}'.format(self.deltat) + ',' + '{:.4f}'.format(self.iavg) + ',' + '{:.4f}'.format(self.vavg) + ',' + str(runtime.total_seconds())
+        logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(datetime.datetime.now()) + ',,,,,,,' + ',' + type + ',' + '{:.4f}'.format(self.q) + ',' + '{:.4f}'.format(self.e) + ',' + '{:.4f}'.format(self.zavg) + ',' + '{:.4f}'.format(self.deltat) + ',' + '{:.4f}'.format(self.iavg) + ',' + '{:.4f}'.format(self.vavg) + ',' + str(runtime.total_seconds()) + ','
         self.bat.logger.log(logstr,self.settings.logfile)
         # print(logstr)
         # print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot)
@@ -363,6 +371,32 @@ class Channel:
                         e = q * self.vavg
                         mode = self.bat.read(self.slot,MODE).data
                         err = self.bat.read(self.slot,ERROR).data
+                        
+                        #take VCC measurement - cannot safely continue test if VCC is too low
+                        vc  = self.bat.read(UNIT,VCC).asvcc()
+                        if not math.isnan(vc):
+                            if vc < 4.35:
+                                print("Warning: VCC on",self.bat.sn,"is dangerously low - consider using more robust powered hub")
+                            if vc < 4.1 and self.vcc < 4.1:
+                                self.bat.write_verify(self.slot,MODE,MODE_STOPPED)
+                                self.test_state = TS_IDLE
+                                print('Test Aborted due to low VCC: Batlab',self.bat.sn,', Channel',self.slot,', Time:',datetime.datetime.now())
+                            self.vcc = vc
+                            
+                            
+                        # detect voltage measurement inconsistency hardware problem that was found on a couple of batlabs
+                        if not math.isnan(v) and not math.isnan(i):
+                            if self.iprev > 0.05 and self.vprev > 0.5:
+                                if math.fabs(i - self.iprev) < 0.05:
+                                    if self.vprev - v > 0.2:
+                                        self.verrorcnt += 1
+                                        print("Warning: unexpected voltage jump detected on Batlab",self.bat.sn," Channel",self.slot,', Time:',datetime.datetime.now())
+                                        if self.verrorcnt > 5:
+                                            self.bat.write_verify(self.slot,MODE,MODE_STOPPED)
+                                            self.test_state = TS_IDLE
+                                            print('Test Aborted due to voltage measurement inconsistency. Possible hardware problem with: Batlab',self.bat.sn,', Channel',self.slot,', Time:',datetime.datetime.now())                       
+                            self.iprev = i
+                            self.vprev = v
 
                         self.q = q
                         self.e = e
@@ -372,12 +406,15 @@ class Channel:
                         # log the results
                         if (ts - self.last_impedance_time).total_seconds() > self.settings.impedance_period and self.settings.impedance_period > 0 and self.trickle_engaged == False:
                             z = self.bat.impedance(self.slot)
+                            if math.isnan(z):
+                                z = self.zavg
+                                print("error in impedance measurement...using previous result")
                             self.last_impedance_time = datetime.datetime.now()
                             self.zcnt += 1
                             self.zavg += (z - self.zavg) / self.zcnt
-                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,'
+                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',' + '{:.4f}'.format(self.vcc)
                         else:
-                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,'
+                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',' + '{:.4f}'.format(self.vcc)
                         
                         if self.settings.individual_cell_logs == 0:
                             self.bat.logger.log(logstr,self.settings.logfile)

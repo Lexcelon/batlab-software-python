@@ -84,7 +84,7 @@ class Packet:
         """Represents error reg bit field as a string of the error flags."""
         if(math.isnan(self.data)):
             return 'ERR_NONE'
-        for i in range(0,6):
+        for i in range(0,len(ERR_LIST)):
             if self.data & (1 << i):
                 return ERR_LIST[i]
         return 'ERR_NONE'

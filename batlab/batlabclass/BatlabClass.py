@@ -307,6 +307,8 @@ class Batlab:
         imag = self.read(cell,CURRENT_PP).ascurrent()
         vmag = self.read(cell,VOLTAGE_PP).asvoltage()
         self.write(UNIT,LOCK,LOCK_UNLOCKED)
+        if math.isnan(imag) or math.isnan(vmag):
+            return float('nan')
         z = vmag / imag
         if mode == MODE_DISCHARGE or mode == MODE_CHARGE or mode == MODE_IDLE or mode == MODE_IMPEDANCE or mode == MODE_STOPPED or mode == MODE_NO_CELL or mode == MODE_BACKWARDS:
             self.write(cell,MODE,mode) #restore previous state
@@ -322,6 +324,8 @@ class Batlab:
         ch = self.read(cell,CHARGEH).data
         cl = self.read(cell,CHARGEL).data
         chp = self.read(cell,CHARGEH).data
+        if math.isnan(ch) or math.isnan(cl) or math.isnan(chp):
+            return float('nan')
         if chp == ch:
             data = (ch << 16) + cl
             return ((6.0 * data / 2**15 ) * 4.096 / 9.765625)
