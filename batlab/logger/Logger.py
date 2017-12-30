@@ -17,6 +17,7 @@ class Logger:
         thread = threading.Thread(target=self.thd_logger)
         thread.daemon = True
         thread.start()
+        #print("logger:",thread.getName())
 
     def log(self,logstring,filename):
         """Writes entry 'logstring' into file 'filename'."""

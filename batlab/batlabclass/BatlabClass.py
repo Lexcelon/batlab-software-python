@@ -10,6 +10,7 @@ import re
 import logging
 import threading
 import math
+import traceback
 
 try:
     # Python 2.x
@@ -35,6 +36,8 @@ class Batlab:
         channel[4]: 4-list of ``Channel`` objects. Each channel can manage a test run on it.
     """
     def __init__(self,port=None,logger=None,settings=None):
+        self.initialized = False
+        self.error = False
         self.sn = ''
         self.ver = ''
         self.port = port
@@ -50,28 +53,35 @@ class Batlab:
         self.critical_write = threading.Lock()
         self.critical_read = threading.Lock()
         self.critical_section = threading.Lock()
-        self.connect()
-        self.channel = [batlab.channel.Channel(self,0), batlab.channel.Channel(self,1), batlab.channel.Channel(self,2), batlab.channel.Channel(self,3)]
+        self.channel = None
+        if self.connect() == 0:
+            self.channel = [batlab.channel.Channel(self,0), batlab.channel.Channel(self,1), batlab.channel.Channel(self,2), batlab.channel.Channel(self,3)]
+        else:
+            self.error = True
+        self.initialized = True
 
     def connect(self):
         """Connects to serial port in ``port`` variable. Spins off a receiver thread to receive incoming packets and add them to a message queue."""
-        while True:
-            try:
-                self.ser = serial.Serial(None,38400,timeout=2,writeTimeout=0)
-                self.ser.port = self.port
-                self.ser.close()
-                self.ser.open()
-            except:
-                logging.warning("Could not connect to port")
-                return -1
-            break
+        try:
+            self.ser = serial.Serial(None,38400,timeout=2,writeTimeout=0)
+            self.ser.port = self.port
+            self.ser.close()
+            self.ser.open()
+        except:
+            logging.warning("Could not connect to port")
+            return -1
         self.is_open = self.ser.is_open
         thread = threading.Thread(target=self.thd_read) #start receiver thread
         thread.daemon = True
         thread.start()
+        #print("batlab:",thread.getName())
         if self.read(0x05,0x01).value() == 257: #then we're not in the bootloader
             # self.write(UNIT,SETTINGS,SET_TRIM_OUTPUT)  -- no longer do this because it is buggy in V3 Firmware.
-            self.write(UNIT,SETTINGS,0)
+            self.write(UNIT,WATCHDOG_TIMER,WDT_RESET) #do this so the watchdog is happy during these initialization commands
+            self.write(CELL0,MODE,MODE_IDLE)
+            self.write(CELL1,MODE,MODE_IDLE)
+            self.write(CELL2,MODE,MODE_IDLE)
+            self.write(CELL3,MODE,MODE_IDLE)
             self.R[0] = self.read(0x00,0x16).data
             self.R[1] = self.read(0x01,0x16).data
             self.R[2] = self.read(0x02,0x16).data
@@ -87,14 +97,26 @@ class Batlab:
             a = self.read(0x04,0x00).data
             b = self.read(0x04,0x01).data
             self.sn = str(a + b*65536)
+            if(math.isnan(a) or math.isnan(b)):
+                logging.warning("Serial Number retrieval failed. Trying Again")
+                a = self.read(0x04,0x00).data
+                b = self.read(0x04,0x01).data
+            
             self.ver = str(self.read(0x04,0x02).data)
+            
+            if int(self.ver) > 3:
+                self.write_verify(UNIT,SETTINGS,SET_WATCHDOG_TIMER) #this setting is only meaningful if the firmware version is 4 or greater.
+                self.write(UNIT,WATCHDOG_TIMER,WDT_RESET)
+                
         else:
             logging.info("The Batlab is in the bootloader")
+        return 0
 
     def disconnect(self):
         """Gracefully closes serial port and kills reader thread."""
-        for ch in self.channel:
-            ch.killevt.set()
+        if self.channel is not None:
+            for ch in self.channel:
+                ch.killevt.set()
         self.killevt.set()
         self.ser.close()
 
@@ -112,13 +134,16 @@ class Batlab:
         Returns:
             A ``packet`` instance containing the read data.
         """
+        q = batlab.packet.Packet()
         if not (namespace in NAMESPACE_LIST):
             print("Namespace Invalid")
-            return None
+            q.valid = False
+            q.data = float('nan')
+            return q
         try:
             with self.critical_read:
-                q = batlab.packet.Packet()
                 outctr = 0
+                exceptctr = 0
                 while(self.ser.is_open):
                     try:
                         self.ser.write((0xAA).to_bytes(1,byteorder='big'))
@@ -137,15 +162,24 @@ class Batlab:
                             return q
                         if outctr > 50:
                             q.valid = False
+                            q.data = float('nan')
                             return q
                         outctr = outctr + 1
                     except:
+                        if exceptctr > 20:
+                            #print('Exception on Batlab read...Continuing')
+                            #traceback.print_exc()
+                            break
+                        exceptctr += 1
+                        sleep(0.005)
                         continue
                 q.valid = False
                 q.data = float('nan')
                 return q
         except:
-            return None
+            q.valid = False
+            q.data = float('nan')
+            return q
 
     def write(self,namespace,addr,value):
         """Writes the value ``value`` to the register address ``addr`` in namespace ``namespace``. This is the general register write function for the Batlab.
@@ -153,15 +187,18 @@ class Batlab:
         Returns:
             A 'write' packet.
         """
+        failresponse = batlab.packet.Packet()
+        failresponse.valid = False
+        failresponse.data = float('nan')
         if not (namespace in NAMESPACE_LIST):
             print("Namespace Invalid")
-            return None
+            return failresponse
         if(math.isnan(value)):
             print("Write Value invalid - nan")
-            return None
+            return failresponse
         if value > 65535 or value < -65535:
             print("Invalid value: 16 bit value expected")
-            return None
+            return failresponse
         if(value & 0x8000): #convert large numbers into negative numbers because the to_bytes call is expecting an int16
             value = -0x10000 + value
         # patch for firmware < 3 ... current compensation bug in firmware, so moving the control loop to software.
@@ -180,6 +217,7 @@ class Batlab:
             with self.critical_write:
                 q = None
                 outctr = 0
+                exceptctr = 0
                 namespace = int(namespace)
                 addr = int(addr)
                 value = int(value)
@@ -204,12 +242,39 @@ class Batlab:
                             return q
                         outctr = outctr + 1
                     except:
+                        if exceptctr > 20:
+                            #print('Exception on Batlab write...Continuing')
+                            #traceback.print_exc()
+                            break
+                        exceptctr += 1
+                        sleep(0.005)
                         continue
                 q.valid = False
                 q.data = float('nan')
                 return q
         except:
-            return None
+            return failresponse
+            
+    def write_verify(self,namespace,addr,value):
+        """Writes the value ``value`` to the register address ``addr`` in namespace ``namespace``. Reads the register back and compares the result, Retries if they do not match.
+
+        Returns:
+            Returns True if results match, Returns False if timeout condition occurred
+        """
+        self.write(namespace,addr,value)
+        tmp = self.read(namespace,addr).data
+        ctr = 0
+        while(not (tmp == value)):
+            print(datetime.datetime.now()," - Register Write Error - Retrying",tmp,value)
+            traceback.print_stack()
+            self.write(namespace,addr,value)
+            tmp = self.read(namespace,addr).data
+            sleep(0.005)
+            ctr += 1
+            if (ctr > 20):
+                print("Unable to Write Register - CRITICAL FAILURE")
+                return False
+        return True
 
     def get_stream(self):
         """Retrieve stream packet from queue."""
@@ -242,6 +307,8 @@ class Batlab:
         imag = self.read(cell,CURRENT_PP).ascurrent()
         vmag = self.read(cell,VOLTAGE_PP).asvoltage()
         self.write(UNIT,LOCK,LOCK_UNLOCKED)
+        if math.isnan(imag) or math.isnan(vmag):
+            return float('nan')
         z = vmag / imag
         if mode == MODE_DISCHARGE or mode == MODE_CHARGE or mode == MODE_IDLE or mode == MODE_IMPEDANCE or mode == MODE_STOPPED or mode == MODE_NO_CELL or mode == MODE_BACKWARDS:
             self.write(cell,MODE,mode) #restore previous state
@@ -251,6 +318,20 @@ class Batlab:
                 nowmode = self.read(cell,MODE)
 
         return z
+    
+    def charge(self,cell):
+        """A macro for taking a charge measurement that handles the case if the charge register rolls over in between high and low reads"""
+        ch = self.read(cell,CHARGEH).data
+        cl = self.read(cell,CHARGEL).data
+        chp = self.read(cell,CHARGEH).data
+        if math.isnan(ch) or math.isnan(cl) or math.isnan(chp):
+            return float('nan')
+        if chp == ch:
+            data = (ch << 16) + cl
+            return ((6.0 * data / 2**15 ) * 4.096 / 9.765625)
+        cl = self.read(cell,CHARGEL).data
+        data = (chp << 16) + cl
+        return ((6.0 * data / 2**15 ) * 4.096 / 9.765625)
 
     def firmware_bootload(self,filename):
         """Writes the firmware image given by the specified filename to the Batlab. This may take a few minutes."""
@@ -335,6 +416,63 @@ class Batlab:
             self.firmware_bootload(filename)
         else:
             print("Firmware is up to date.")
+            
+    def calibration_recover(self,filename):
+        """Method to re-write Non-volatile Memory (Calibration Constants) in case they got erased. supply filename containing 49 rows representing the 49 constants"""
+        value_list = []
+        try:
+            with open(filename, "r") as f:
+                for value in f:
+                    value_list.append(int(value))
+            if len(value_list) != 49:
+                print("File was corrupt. Expecting 49 integer values")
+                return False    
+        except:
+            print("File was missing or otherwise could not be read")
+            return False
+        valctr = 0
+        
+        
+        
+        #write the serial number
+        sn = value_list[valctr]
+        self.write(UNIT,SERIAL_NUM,sn % 65536)
+        self.write(UNIT,DEVICE_ID,sn // 65536)
+        valctr += 1
+        
+        #write everything else
+        for i in range(0,4):
+            self.write(i,CURRENT_CALIB_OFF ,value_list[valctr])
+            valctr += 1
+            self.write(i,CURRENT_CALIB_SCA ,value_list[valctr])
+            valctr += 1
+            self.write(i,CURR_LOWV_OFF     ,value_list[valctr])
+            valctr += 1
+            self.write(i,CURR_LOWV_SCA     ,value_list[valctr])
+            valctr += 1
+            self.write(i,CURR_LOWV_OFF_SCA ,value_list[valctr])
+            valctr += 1
+            self.write(i,TEMP_CALIB_R      ,value_list[valctr])
+            valctr += 1
+            self.write(i,TEMP_CALIB_B      ,value_list[valctr])
+            valctr += 1
+            self.write(i,CURRENT_CALIB_PP  ,value_list[valctr])
+            valctr += 1
+            self.write(i,VOLTAGE_CALIB_PP  ,value_list[valctr])
+            valctr += 1
+            self.write(i,CURR_CALIB_PP_OFF ,value_list[valctr])
+            valctr += 1
+            self.write(i,VOLT_CALIB_PP_OFF ,value_list[valctr])
+            valctr += 1
+        self.write(UNIT,VOLT_CH_CALIB_OFF,value_list[valctr])
+        valctr += 1
+        self.write(UNIT,VOLT_CH_CALIB_SCA,value_list[valctr])
+        valctr += 1
+        self.write(UNIT,VOLT_DC_CALIB_OFF,value_list[valctr])
+        valctr += 1
+        self.write(UNIT,VOLT_DC_CALIB_SCA,value_list[valctr])
+        valctr += 1
+
 
     # Reading thread - parses incoming packets and adds them to queues
     def thd_read(self):

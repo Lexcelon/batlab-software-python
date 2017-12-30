@@ -13,6 +13,7 @@ except ImportError:
 import batlab.logger
 import batlab.settings
 import batlab.batlabclass
+import traceback
 
 # Manage a pool of connected batlabs by maintaining a list of plugged-in systems
 class Batpool:
@@ -38,6 +39,7 @@ class Batpool:
         thread = threading.Thread(target=self.batpool_mgr)
         thread.daemon = True
         thread.start()
+        logging.info("batpool:",thread.getName())
         self.logger = batlab.logger.Logger()
         self.settings = batlab.settings.Settings()
 
@@ -54,30 +56,43 @@ class Batpool:
 
     def batpool_mgr(self):
         while(True):
-            portlist = self.get_ports()
-            for port in portlist:
-                if port not in self.batpool:
-                    self.batlocks[port] = threading.Lock()
-                    self.batpool[port] = batlab.batlabclass.Batlab(port,self.logger,self.settings)
-                    self.msgqueue.put('Batlab on ' + port + ' connected')
-                    if self.batactive == '':
-                        self.batactive = port
-                        self.msgqueue.put('Batlab on ' + port + ' set as the Active Batlab')
-            for port in list(self.batpool.keys()):
-                if port not in portlist:
-                    self.batpool[port].disconnect()
-                    with self.batlocks[port]:
-                        del self.batpool[port]
-                    del self.batlocks[port]
-                    self.msgqueue.put('Batlab on ' + port + ' disconnected')
-            if self.quitevt.is_set():
+            try:
+                portlist = self.get_ports()
+                for port in portlist:
+                    if port not in self.batpool:
+                        self.batlocks[port] = threading.Lock()
+                        self.batpool[port] = batlab.batlabclass.Batlab(port,self.logger,self.settings)
+                        while(self.batpool[port].initialized == False):
+                            sleep(0.01)
+                        if self.batpool[port].error == True: #something went wrong. delete this instance and try again later
+                            self.batpool[port].disconnect()
+                            del self.batpool[port]
+                            del self.batlocks[port]
+                            print("Batpool - Batlab init error. Deleting instance")
+                            continue
+                        self.msgqueue.put('Batlab on ' + port + ' connected')
+                        if self.batactive == '':
+                            self.batactive = port
+                            self.msgqueue.put('Batlab on ' + port + ' set as the Active Batlab')
                 for port in list(self.batpool.keys()):
-                    with self.batlocks[port]:
+                    if port not in portlist:
                         self.batpool[port].disconnect()
-                        del self.batpool[port]
-                    del self.batlocks[port]
-                return
-            sleep(0.5)
+                        with self.batlocks[port]:
+                            del self.batpool[port]
+                        del self.batlocks[port]
+                        self.msgqueue.put('Batlab on ' + port + ' disconnected')
+                if self.quitevt.is_set():
+                    for port in list(self.batpool.keys()):
+                        with self.batlocks[port]:
+                            self.batpool[port].disconnect()
+                            del self.batpool[port]
+                        del self.batlocks[port]
+                    return
+                sleep(0.5)
+            except:
+                logging.info('Exception on Batpool...Continuing')
+                traceback.print_exc()
+                continue
 
     def active_exists(self):
         """Returns True if the Batlab described by the ``batactive`` port is connected."""
