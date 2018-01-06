@@ -261,27 +261,32 @@ class Batlab:
         Returns:
             Returns True if results match, Returns False if timeout condition occurred
         """
-        self.write(namespace,addr,value)
-        
+
         #mimick what the write function does to tweak the current setpoint so we don't have an issue here.
         if addr == CURRENT_SETPOINT and namespace < 4:
             if value > 575: #maximum value to write to this register
                 value = 575
             if value < 0:
                 value = 0
-        sleep(0.005)
+            self.write(namespace,addr,0) #If you are going to change the current setpoint, it is best to first set it back to 0
+            sleep(0.01)
+        
+        #Actually write the value to the register
+        self.write(namespace,addr,value)  
+        sleep(0.005)        
+        
         tmp = self.read(namespace,addr).data
         ctr = 0
         while(not (tmp == value)):
             print(datetime.datetime.now()," - Register Write Error - Retrying",self.sn,namespace,addr,tmp,value)
             #traceback.print_stack()
-            sleep(0.005)
+            sleep(0.015)
             self.write(namespace,addr,value)
-            sleep(0.005)
+            sleep(0.015)
             tmp = self.read(namespace,addr).data
-            sleep(0.005)
+            sleep(0.015)
             ctr += 1
-            if (ctr > 20):
+            if (ctr > 10):
                 print("Unable to Write Register - CRITICAL FAILURE")
                 return False
         return True
