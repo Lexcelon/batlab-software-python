@@ -262,12 +262,22 @@ class Batlab:
             Returns True if results match, Returns False if timeout condition occurred
         """
         self.write(namespace,addr,value)
+        
+        #mimick what the write function does to tweak the current setpoint so we don't have an issue here.
+        if addr == CURRENT_SETPOINT and namespace < 4:
+            if value > 575: #maximum value to write to this register
+                value = 575
+            if value < 0:
+                value = 0
+        sleep(0.005)
         tmp = self.read(namespace,addr).data
         ctr = 0
         while(not (tmp == value)):
-            print(datetime.datetime.now()," - Register Write Error - Retrying",tmp,value)
-            traceback.print_stack()
+            print(datetime.datetime.now()," - Register Write Error - Retrying",self.sn,namespace,addr,tmp,value)
+            #traceback.print_stack()
+            sleep(0.005)
             self.write(namespace,addr,value)
+            sleep(0.005)
             tmp = self.read(namespace,addr).data
             sleep(0.005)
             ctr += 1
@@ -307,15 +317,20 @@ class Batlab:
         imag = self.read(cell,CURRENT_PP).ascurrent()
         vmag = self.read(cell,VOLTAGE_PP).asvoltage()
         self.write(UNIT,LOCK,LOCK_UNLOCKED)
-        if math.isnan(imag) or math.isnan(vmag):
-            return float('nan')
-        z = vmag / imag
+        
         if mode == MODE_DISCHARGE or mode == MODE_CHARGE or mode == MODE_IDLE or mode == MODE_IMPEDANCE or mode == MODE_STOPPED or mode == MODE_NO_CELL or mode == MODE_BACKWARDS:
             self.write(cell,MODE,mode) #restore previous state
             nowmode = self.read(cell,MODE)
             while nowmode == MODE_IMPEDANCE and mode != MODE_IMPEDANCE:
                 self.write(cell,MODE,mode) #restore previous state
                 nowmode = self.read(cell,MODE)
+        z = 0.0   
+        if math.isnan(imag) or math.isnan(vmag):
+            z = float('nan')
+        elif imag < 0.000001:
+            z = 0
+        else:
+            z = vmag / imag
 
         return z
     
