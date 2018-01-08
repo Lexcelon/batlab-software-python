@@ -351,7 +351,7 @@ class Channel:
                             op_raw = 575
                         if not math.isnan(op_raw):
                             # writes to the firmware setpoitn will update the software setpoint, so we need to restore the software setpoint after we write 
-                            self.bat.write_verify(self.slot,CURRENT_SETPOINT,op_raw)
+                            self.bat.write(self.slot,CURRENT_SETPOINT,op_raw)
                             self.bat.setpoints[self.slot] = sp_raw
                             
                     #reset the batlab watchdog timer (shuts off current flow if it reaches 0 --- 256 to 0 in about 30 seconds)
