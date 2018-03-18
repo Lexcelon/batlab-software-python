@@ -349,6 +349,8 @@ class Channel:
                             op_raw -= 1
                         if sp > 4.5:
                             op_raw = 575
+                        if op_raw > 575 and sp_raw <= 575: #If for some reason we read a garbage op_raw, then don't make that our new setpoint
+                            op_raw = sp_raw
                         if not math.isnan(op_raw):
                             # writes to the firmware setpoitn will update the software setpoint, so we need to restore the software setpoint after we write 
                             self.bat.write(self.slot,CURRENT_SETPOINT,op_raw)
@@ -371,6 +373,7 @@ class Channel:
                         e = q * self.vavg
                         mode = self.bat.read(self.slot,MODE).data
                         err = self.bat.read(self.slot,ERROR).data
+                        dty = self.bat.read(self.slot,DUTY).data
                         
                         #take VCC measurement - cannot safely continue test if VCC is too low
                         vc  = self.bat.read(UNIT,VCC).asvcc()
@@ -412,9 +415,9 @@ class Channel:
                             self.last_impedance_time = datetime.datetime.now()
                             self.zcnt += 1
                             self.zavg += (z - self.zavg) / self.zcnt
-                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',' + '{:.4f}'.format(self.vcc)
+                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
                         else:
-                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',' + '{:.4f}'.format(self.vcc)
+                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
                         
                         if self.settings.individual_cell_logs == 0:
                             self.bat.logger.log(logstr,self.settings.logfile)
