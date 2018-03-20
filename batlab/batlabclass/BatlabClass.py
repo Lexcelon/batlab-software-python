@@ -161,6 +161,12 @@ class Batlab:
                         if( (q.addr == addr and q.namespace == namespace) ): #or outctr > 20 ):
                             return q
                         if outctr > 50:
+                            print("<<thdBatlab:read fail - flushing write buffer with packet start code")
+                            self.ser.write((0xAA).to_bytes(1,byteorder='big'))
+                            self.ser.write((0xAA).to_bytes(1,byteorder='big'))
+                            self.ser.write((0xAA).to_bytes(1,byteorder='big'))
+                            self.ser.write((0xAA).to_bytes(1,byteorder='big'))
+                            self.ser.write((0xAA).to_bytes(1,byteorder='big'))
                             q.valid = False
                             q.data = float('nan')
                             return q

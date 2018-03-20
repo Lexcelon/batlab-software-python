@@ -60,6 +60,7 @@ class Settings:
 
         self.trickle_enable                 = 0
         self.pulse_enable                   = 0
+        self.constant_voltage_enable        = False
         self.trickle_discharge_engage_limit = 4.1
         self.trickle_charge_engage_limit    = 2.8
         self.trickle_chrg_rate              = 0.5
@@ -148,6 +149,8 @@ class Settings:
                 self.trickle_enable = value
             if key == "pulseEnable":
                 self.pulse_enable = value
+            if key == "constantVoltageEnable":
+                self.constant_voltage_enable = value
             if key == "trickleDischrgEngageVoltage":
                 self.trickle_discharge_engage_limit = value
             if key == "trickleChrgEngageVoltage":
@@ -198,6 +201,7 @@ class Settings:
         print("storageDischargeVoltage      :",self.storage_dischrg_volt   )
         print("trickleEnable                :",self.trickle_enable                 )
         print("pulseEnable                  :",self.pulse_enable                   )
+        print("constantVoltageEnable        :",self.constant_voltage_enable        )
         print("trickleDischrgEngageVoltage  :",self.trickle_discharge_engage_limit )
         print("trickleChrgEngageVoltage     :",self.trickle_charge_engage_limit    )
         print("trickleChrgRate              :",self.trickle_chrg_rate              )
