@@ -232,6 +232,17 @@ class Channel:
 
             elif self.settings.constant_voltage_enable == True: # handle constant voltage discharge
                 stdimpedance = 0.050 / 128.0
+                try:
+                    stdimpedance = self.zavg / 128.0
+                    if(self.zavg > 0.5):
+                        stdimpedance = 0.5 / 128.0
+                    if(self.zavg < 0.01):
+                        stdimpedance = 0.01 / 128.0
+                    if(self.zavg == 0 or math.isnan(self.zavg)):
+                        stdimpedance = 0.050 / 128.0    
+                except:
+                    stdimpedance = 0.050 / 128.0
+                    
                 if v < (self.settings.low_volt_cutoff + (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > 8: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - 8 ) # scale down by 1/16th of an amp
             # handle feature to trickle charge the cell if close to voltage limit
@@ -294,6 +305,17 @@ class Channel:
 
             elif self.settings.constant_voltage_enable == True: # handle constant voltage charge
                 stdimpedance = 0.050 / 128.0
+                try:
+                    stdimpedance = self.zavg / 128.0
+                    if(self.zavg > 0.5):
+                        stdimpedance = 0.5 / 128.0
+                    if(self.zavg < 0.01):
+                        stdimpedance = 0.01 / 128.0
+                    if(self.zavg == 0 or math.isnan(self.zavg)):
+                        stdimpedance = 0.050 / 128.0    
+                except:
+                    stdimpedance = 0.050 / 128.0
+
                 if v > (self.settings.high_volt_cutoff - (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > 8: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - 8 ) # scale down by 1/16th of an amp
 
