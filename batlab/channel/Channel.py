@@ -369,6 +369,9 @@ class Channel:
                 if self.bat.logger is None:
                     sleep(1)
                     continue
+                if self.bat.bootloader == True:
+                    sleep(1)
+                    continue
             except:
                 sleep(1)
                 continue
