@@ -170,16 +170,30 @@ class Channel:
     def state_machine_cycletest(self,mode,v):
         if self.test_state == TS_PRECHARGE:
             # handle feature to trickle charge the cell if close to voltage limit
-            if self.settings.trickle_enable == 1:
+            if self.settings.trickle_enable == 1 and self.settings.constant_voltage_enable == False:
                 if v > self.settings.trickle_charge_engage_limit and self.trickle_engaged == False:
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.trickle_chrg_rate).assetpoint())
                     self.trickle_engaged = True
+            elif self.settings.constant_voltage_enable == True: # handle constant voltage charge
+                stdimpedance = 0.050 / 128.0
+                try:
+                    stdimpedance = self.zavg / 128.0
+                    if(self.zavg > 0.5):
+                        stdimpedance = 0.5 / 128.0
+                    if(self.zavg < 0.01):
+                        stdimpedance = 0.01 / 128.0
+                    if(self.zavg == 0 or math.isnan(self.zavg)):
+                        stdimpedance = 0.050 / 128.0    
+                except:
+                    stdimpedance = 0.050 / 128.0
+                if v > (self.settings.high_volt_cutoff - (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > 8: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
+                    self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - 8 ) # scale down by 1/16th of an amp
 
             if mode == MODE_STOPPED:
                 self.log_lvl2("PRECHARGE")
                 self.test_state = TS_CHARGEREST
                 self.rest_time = datetime.datetime.now()
-                # We should rarely hit this condition - it means you don't want to make any testing cycles, just carge up and stop, or charge up and equalize
+                # We should rarely hit this condition - it means you don't want to make any testing cycles, just charge up and stop, or charge up and equalize
                 if self.current_cycle >= (self.settings.num_meas_cyc + self.settings.num_warm_up_cyc):
                     if self.settings.bool_storage_dischrg:
                         self.test_state = TS_POSTDISCHARGE
@@ -315,7 +329,6 @@ class Channel:
                         stdimpedance = 0.050 / 128.0    
                 except:
                     stdimpedance = 0.050 / 128.0
-
                 if v > (self.settings.high_volt_cutoff - (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > 8: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - 8 ) # scale down by 1/16th of an amp
 
@@ -451,7 +464,7 @@ class Channel:
                             self.last_impedance_time = datetime.datetime.now()
                             self.zcnt += 1
                             self.zavg += (z - self.zavg) / self.zcnt
-                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
+                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(self.vprev) + ',' + '{:.4f}'.format(self.iprev) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
                         else:
                             logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
                         
