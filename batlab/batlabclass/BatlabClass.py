@@ -54,6 +54,7 @@ class Batlab:
         self.critical_read = threading.Lock()
         self.critical_section = threading.Lock()
         self.channel = None
+        self.bootloader = False
         if self.connect() == 0:
             self.channel = [batlab.channel.Channel(self,0), batlab.channel.Channel(self,1), batlab.channel.Channel(self,2), batlab.channel.Channel(self,3)]
         else:
@@ -110,6 +111,7 @@ class Batlab:
                 
         else:
             logging.info("The Batlab is in the bootloader")
+            self.bootloader = True
         return 0
 
     def disconnect(self):
@@ -140,6 +142,11 @@ class Batlab:
             q.valid = False
             q.data = float('nan')
             return q
+        if (not namespace == 0x05) and self.bootloader == True:
+            print("Reg Read not vaild when Batlab is in Bootloader")
+            q.valid = False
+            q.data = float('nan')
+            return q
         try:
             with self.critical_read:
                 outctr = 0
@@ -161,6 +168,12 @@ class Batlab:
                         if( (q.addr == addr and q.namespace == namespace) ): #or outctr > 20 ):
                             return q
                         if outctr > 50:
+                            print("<<thdBatlab:read fail - flushing write buffer with packet start code")
+                            self.ser.write((0xAA).to_bytes(1,byteorder='big'))
+                            self.ser.write((0xAA).to_bytes(1,byteorder='big'))
+                            self.ser.write((0xAA).to_bytes(1,byteorder='big'))
+                            self.ser.write((0xAA).to_bytes(1,byteorder='big'))
+                            self.ser.write((0xAA).to_bytes(1,byteorder='big'))
                             q.valid = False
                             q.data = float('nan')
                             return q
@@ -192,6 +205,9 @@ class Batlab:
         failresponse.data = float('nan')
         if not (namespace in NAMESPACE_LIST):
             print("Namespace Invalid")
+            return failresponse
+        if (not namespace == 0x05) and self.bootloader == True:
+            print("Write not vaild when Batlab is in Bootloader")
             return failresponse
         if(math.isnan(value)):
             print("Write Value invalid - nan")
@@ -368,6 +384,7 @@ class Batlab:
         # command the Batlab to enter the bootloader
         print("Entering Bootloader")
         self.write(UNIT,BOOTLOAD,0x0000)
+        self.bootloader = True
         sleep(2)
         # load the image onto the batlab
         with open(filename, "rb") as f:
@@ -387,6 +404,7 @@ class Batlab:
         self.write(BOOTLOADER,BL_BOOTLOAD,0x0000)
         sleep(2)
         if(self.read(BOOTLOADER,BL_DATA).value() == COMMAND_ERROR):
+            self.bootloader = False
             self.sn = int(self.read(UNIT,SERIAL_NUM).value()) + (int(self.read(UNIT,DEVICE_ID).value()) << 16)
             print("Connected to Batlab " + str(self.sn))
             fw = int(self.read(UNIT,FIRMWARE_VER).value())

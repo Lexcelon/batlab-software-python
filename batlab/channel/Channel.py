@@ -101,6 +101,9 @@ class Channel:
         self.bat.write_verify(self.slot,TEMP_LIMIT_DCHG,batlab.encoder.Encoder(self.settings.dischrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
         self.bat.write(self.slot,CHARGEH,0)
         #self.bat.write(self.slot,CHARGEL,0) # only need to write to one of the charge registers to clear them
+        
+        if self.settings.constant_voltage_enable == True: #if we're doing constant voltage charging, we need to have current resolution down to the small range
+            self.bat.write_verify(UNIT,ZERO_AMP_THRESH,batlab.encoder.Encoder(0.05).ascurrent())
 
         # Actually start the test
         if(self.test_type == TT_CYCLE):
@@ -167,16 +170,30 @@ class Channel:
     def state_machine_cycletest(self,mode,v):
         if self.test_state == TS_PRECHARGE:
             # handle feature to trickle charge the cell if close to voltage limit
-            if self.settings.trickle_enable == 1:
+            if self.settings.trickle_enable == 1 and self.settings.constant_voltage_enable == False:
                 if v > self.settings.trickle_charge_engage_limit and self.trickle_engaged == False:
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.trickle_chrg_rate).assetpoint())
                     self.trickle_engaged = True
+            elif self.settings.constant_voltage_enable == True: # handle constant voltage charge
+                stdimpedance = 0.050 / 128.0
+                try:
+                    stdimpedance = self.zavg / 128.0
+                    if(self.zavg > 0.5):
+                        stdimpedance = 0.5 / 128.0
+                    if(self.zavg < 0.01):
+                        stdimpedance = 0.01 / 128.0
+                    if(self.zavg == 0 or math.isnan(self.zavg)):
+                        stdimpedance = 0.050 / 128.0    
+                except:
+                    stdimpedance = 0.050 / 128.0
+                if v > (self.settings.high_volt_cutoff - (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > 8: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
+                    self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - 8 ) # scale down by 1/16th of an amp
 
             if mode == MODE_STOPPED:
                 self.log_lvl2("PRECHARGE")
                 self.test_state = TS_CHARGEREST
                 self.rest_time = datetime.datetime.now()
-                # We should rarely hit this condition - it means you don't want to make any testing cycles, just carge up and stop, or charge up and equalize
+                # We should rarely hit this condition - it means you don't want to make any testing cycles, just charge up and stop, or charge up and equalize
                 if self.current_cycle >= (self.settings.num_meas_cyc + self.settings.num_warm_up_cyc):
                     if self.settings.bool_storage_dischrg:
                         self.test_state = TS_POSTDISCHARGE
@@ -227,11 +244,28 @@ class Channel:
                         self.pulse_state = True
                         self.pulse_discharge_on_time = datetime.datetime.now()
 
+            elif self.settings.constant_voltage_enable == True: # handle constant voltage discharge
+                stdimpedance = 0.050 / 128.0
+                try:
+                    stdimpedance = self.zavg / 128.0
+                    if(self.zavg > 0.5):
+                        stdimpedance = 0.5 / 128.0
+                    if(self.zavg < 0.01):
+                        stdimpedance = 0.01 / 128.0
+                    if(self.zavg == 0 or math.isnan(self.zavg)):
+                        stdimpedance = 0.050 / 128.0    
+                except:
+                    stdimpedance = 0.050 / 128.0
+                    
+                if v < (self.settings.low_volt_cutoff + (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > 8: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
+                    self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - 8 ) # scale down by 1/16th of an amp
             # handle feature to trickle charge the cell if close to voltage limit
-            if self.settings.trickle_enable == 1:
+            if self.settings.trickle_enable == 1 and self.settings.constant_voltage_enable == False:
                 if v < self.settings.trickle_discharge_engage_limit and self.trickle_engaged == False:
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.trickle_dischrg_rate).assetpoint())
                     self.trickle_engaged = True
+
+                 
 
 
             if mode == MODE_STOPPED:
@@ -283,8 +317,23 @@ class Channel:
                         self.pulse_state = True
                         self.pulse_charge_on_time = datetime.datetime.now()
 
+            elif self.settings.constant_voltage_enable == True: # handle constant voltage charge
+                stdimpedance = 0.050 / 128.0
+                try:
+                    stdimpedance = self.zavg / 128.0
+                    if(self.zavg > 0.5):
+                        stdimpedance = 0.5 / 128.0
+                    if(self.zavg < 0.01):
+                        stdimpedance = 0.01 / 128.0
+                    if(self.zavg == 0 or math.isnan(self.zavg)):
+                        stdimpedance = 0.050 / 128.0    
+                except:
+                    stdimpedance = 0.050 / 128.0
+                if v > (self.settings.high_volt_cutoff - (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > 8: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
+                    self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - 8 ) # scale down by 1/16th of an amp
+
             # handle feature to trickle charge the cell if close to voltage limit
-            if self.settings.trickle_enable == 1:
+            if self.settings.trickle_enable == 1 and self.settings.constant_voltage_enable == False:
                 if v > self.settings.trickle_charge_engage_limit and self.trickle_engaged == False:
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.trickle_chrg_rate).assetpoint())
                     self.trickle_engaged = True
@@ -320,6 +369,9 @@ class Channel:
                 if self.bat.logger is None:
                     sleep(1)
                     continue
+                if self.bat.bootloader == True:
+                    sleep(1)
+                    continue
             except:
                 sleep(1)
                 continue
@@ -349,6 +401,8 @@ class Channel:
                             op_raw -= 1
                         if sp > 4.5:
                             op_raw = 575
+                        if op_raw > 575 and sp_raw <= 575: #If for some reason we read a garbage op_raw, then don't make that our new setpoint
+                            op_raw = sp_raw
                         if not math.isnan(op_raw):
                             # writes to the firmware setpoitn will update the software setpoint, so we need to restore the software setpoint after we write 
                             self.bat.write(self.slot,CURRENT_SETPOINT,op_raw)
@@ -371,6 +425,7 @@ class Channel:
                         e = q * self.vavg
                         mode = self.bat.read(self.slot,MODE).data
                         err = self.bat.read(self.slot,ERROR).data
+                        dty = self.bat.read(self.slot,DUTY).data
                         
                         #take VCC measurement - cannot safely continue test if VCC is too low
                         vc  = self.bat.read(UNIT,VCC).asvcc()
@@ -412,9 +467,9 @@ class Channel:
                             self.last_impedance_time = datetime.datetime.now()
                             self.zcnt += 1
                             self.zavg += (z - self.zavg) / self.zcnt
-                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',' + '{:.4f}'.format(self.vcc)
+                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(self.vprev) + ',' + '{:.4f}'.format(self.iprev) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
                         else:
-                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',' + '{:.4f}'.format(self.vcc)
+                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
                         
                         if self.settings.individual_cell_logs == 0:
                             self.bat.logger.log(logstr,self.settings.logfile)
