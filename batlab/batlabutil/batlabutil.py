@@ -210,35 +210,35 @@ def batlab_parse_cmd(cmd,bp):
                     print('LOCKED      :',b.read(UNIT,LOCK).value())
 
                 if p[0] == 'measure':
-                    try:
+                    #try:
+                    aa = 0
+                    bb = 0
+                    cell = 0
+                    if len(p) > 1:
+                        cell = eval(p[1])
+                        aa = cell
+                        bb = cell + 1
+                    else:
                         aa = 0
-                        bb = 0
-                        cell = 0
-                        if len(p) > 1:
-                            cell = eval(p[1])
-                            aa = cell
-                            bb = cell + 1
+                        bb = 4
+                    for iter in range(aa,bb):
+                        v = '{:.4f}'.format(b.read(iter,VOLTAGE).asvoltage())
+                        i = '{:.4f}'.format(b.read(iter,CURRENT).ascurrent())
+                        t = '{:2.0f}'.format(b.read(iter,TEMPERATURE).astemperature(b.R,b.B))
+                        tc = '{:2.0f}'.format((float(t)-32)*5.0/9.0)
+                        chg = b.charge(iter)
+                        c = '{:6.0f}'.format(chg)
+                        mode = b.read(iter,MODE).asmode()
+                        err = b.read(iter,ERROR).aserr()
+                        sp = b.read(iter,CURRENT_SETPOINT).assetpoint()
+                        if mode == 'MODE_STOPPED':
+                            print('CELL'+str(iter)+':',v,'V','0.0000','A',t,tc,'degF/C',c,'Coulombs',mode,'-',err)
+                        elif sp == 0 or mode == 'MODE_IDLE' or mode == 'MODE_NO_CELL':
+                            print('CELL'+str(iter)+':',v,'V','0.0000','A',t,tc,'degF/C',c,'Coulombs',mode)
                         else:
-                            aa = 0
-                            bb = 4
-                        for iter in range(aa,bb):
-                            v = '{:.4f}'.format(b.read(iter,VOLTAGE).asvoltage())
-                            i = '{:.4f}'.format(b.read(iter,CURRENT).ascurrent())
-                            t = '{:2.0f}'.format(b.read(iter,TEMPERATURE).astemperature(b.R,b.B))
-                            tc = '{:2.0f}'.format((float(t)-32)*5.0/9.0)
-                            chg = b.charge(iter)
-                            c = '{:6.0f}'.format(chg)
-                            mode = b.read(iter,MODE).asmode()
-                            err = b.read(iter,ERROR).aserr()
-                            sp = b.read(iter,CURRENT_SETPOINT).assetpoint()
-                            if mode == 'MODE_STOPPED':
-                                print('CELL'+str(iter)+':',v,'V','0.0000','A',t,tc,'degF/C',c,'Coulombs',mode,'-',err)
-                            elif sp == 0 or mode == 'MODE_IDLE' or mode == 'MODE_NO_CELL':
-                                print('CELL'+str(iter)+':',v,'V','0.0000','A',t,tc,'degF/C',c,'Coulombs',mode)
-                            else:
-                                print('CELL'+str(iter)+':',v,'V',i,'A',t,tc,'degF/C',c,'Coulombs',mode)
-                    except:
-                        print("Invalid Usage.")
+                            print('CELL'+str(iter)+':',v,'V',i,'A',t,tc,'degF/C',c,'Coulombs',mode)
+                    #except:
+                    #    print("Invalid Usage.")
 
                 if p[0] == 'setpoints':
                     try:

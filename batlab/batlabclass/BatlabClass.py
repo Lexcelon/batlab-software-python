@@ -357,6 +357,10 @@ class Batlab:
     
     def charge(self,cell):
         """A macro for taking a charge measurement that handles the case if the charge register rolls over in between high and low reads"""
+        set = self.read(UNIT,SETTINGS).data
+        multiplier = 6.0
+        if not (set & SET_CH0_HI_RES == 0):
+            multiplier = 1.0
         ch = self.read(cell,CHARGEH).data
         cl = self.read(cell,CHARGEL).data
         chp = self.read(cell,CHARGEH).data
@@ -364,10 +368,10 @@ class Batlab:
             return float('nan')
         if chp == ch:
             data = (ch << 16) + cl
-            return ((6.0 * data / 2**15 ) * 4.096 / 9.765625)
+            return ((multiplier * data / 2**15 ) * 4.096 / 9.765625)
         cl = self.read(cell,CHARGEL).data
         data = (chp << 16) + cl
-        return ((6.0 * data / 2**15 ) * 4.096 / 9.765625)
+        return ((multiplier * data / 2**15 ) * 4.096 / 9.765625)
 
     def firmware_bootload(self,filename):
         """Writes the firmware image given by the specified filename to the Batlab. This may take a few minutes."""

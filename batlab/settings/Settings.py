@@ -123,7 +123,7 @@ class Settings:
             if key == "impedanceReportingPeriod":
                 self.impedance_period = value
             if key == "lowVoltageCutoff":
-                if self.check(key,value,2.4324,3.5,self.low_volt_cutoff):
+                if self.check(key,value,2.4324,4.25,self.low_volt_cutoff):
                     self.low_volt_cutoff = value
             if key == "numMeasurementCycles":
                 self.num_meas_cyc = value
