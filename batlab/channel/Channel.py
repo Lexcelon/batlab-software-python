@@ -121,6 +121,7 @@ class Channel:
         self.start_time = datetime.datetime.now()
         self.last_lvl2_time = datetime.datetime.now()
         self.last_impedance_time = datetime.datetime.now()
+        self.last_lvl1_time = datetime.datetime.now()
         self.rest_time = datetime.datetime.now()
         self.vavg = 0
         self.vcnt = 0
@@ -459,22 +460,24 @@ class Channel:
                         state = l_test_state[self.test_state]
 
                         # log the results
-                        if (ts - self.last_impedance_time).total_seconds() > self.settings.impedance_period and self.settings.impedance_period > 0 and self.trickle_engaged == False:
-                            z = self.bat.impedance(self.slot)
-                            if math.isnan(z):
-                                z = self.zavg
-                                print("error in impedance measurement...using previous result")
-                            self.last_impedance_time = datetime.datetime.now()
-                            self.zcnt += 1
-                            self.zavg += (z - self.zavg) / self.zcnt
-                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(self.vprev) + ',' + '{:.4f}'.format(self.iprev) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
-                        else:
-                            logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
-                        
-                        if self.settings.individual_cell_logs == 0:
-                            self.bat.logger.log(logstr,self.settings.logfile)
-                        else:
-                            self.bat.logger.log(logstr,self.settings.cell_logfile + self.name + '.csv')
+                        if (ts - self.last_lvl1_time).total_seconds() > self.settings.reporting_period:
+                            self.last_lvl1_time = datetime.datetime.now()
+                            if (ts - self.last_impedance_time).total_seconds() > self.settings.impedance_period and self.settings.impedance_period > 0 and self.trickle_engaged == False:
+                                z = self.bat.impedance(self.slot)
+                                if math.isnan(z):
+                                    z = self.zavg
+                                    print("error in impedance measurement...using previous result")
+                                self.last_impedance_time = datetime.datetime.now()
+                                self.zcnt += 1
+                                self.zavg += (z - self.zavg) / self.zcnt
+                                logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(self.vprev) + ',' + '{:.4f}'.format(self.iprev) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
+                            else:
+                                logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
+                            
+                            if self.settings.individual_cell_logs == 0:
+                                self.bat.logger.log(logstr,self.settings.logfile)
+                            else:
+                                self.bat.logger.log(logstr,self.settings.cell_logfile + self.name + '.csv')
                         
 
                         # actually run the test state machine - decides what to do next
@@ -483,8 +486,10 @@ class Channel:
                 sleep(0.01)
                 if self.settings.reporting_period < 0.5:
                     sleep(0.5)
-                else:
+                elif self.settings.reporting_period < 1.0:
                     sleep(self.settings.reporting_period)
+                else:
+                    sleep(1)
 
             except:
                 sleep(2)
