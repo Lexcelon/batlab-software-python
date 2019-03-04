@@ -393,7 +393,7 @@ class Channel:
                     sp = sp_raw / 128.0
                     if mode == 'MODE_CHARGE' or mode == 'MODE_DISCHARGE':
                         #print(mode,self.slot,i,op,sp)
-                        if i > 0 and sp > 0.5:
+                        if i > 0 and (sp >= 0.35 or i < 0.37):
                             if i < (sp - 0.01):
                                 op_raw += 1
                             elif i > (sp + 0.01):
