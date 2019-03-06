@@ -402,6 +402,8 @@ class Channel:
                             op_raw -= 1
                         if sp > 4.5:
                             op_raw = 575
+                        if op_raw < 8 and sp_raw > 0: #make sure that some amount of trickle current is flowing even if our setpoint is close to 0
+                            op_raw = 8
                         if op_raw > 575 and sp_raw <= 575: #If for some reason we read a garbage op_raw, then don't make that our new setpoint
                             op_raw = sp_raw
                         if not math.isnan(op_raw):
