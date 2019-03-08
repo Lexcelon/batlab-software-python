@@ -72,6 +72,8 @@ class Settings:
         self.pulse_charge_off_rate          = 0
         self.pulse_discharge_off_rate       = 0
         self.individual_cell_logs           = 0
+        self.constant_voltage_sensitivity   = 1
+        self.constant_voltage_stepsize      = 8
 
         self.flag_ignore_safety_limits = False
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
@@ -171,6 +173,10 @@ class Settings:
                 self.pulse_discharge_off_rate = value
             if key == "individualCellLogs": 
                 self.individual_cell_logs = value
+            if key == "constantVoltageStepsize":
+                self.constant_voltage_stepsize = value
+            if key == "constantVoltageSensitivity": 
+                self.constant_voltage_sensitivity = value
 
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
         self.cell_logfile = 'batlab-log_' + self.cell_playlist_name + '_'
@@ -202,6 +208,8 @@ class Settings:
         print("trickleEnable                :",self.trickle_enable                 )
         print("pulseEnable                  :",self.pulse_enable                   )
         print("constantVoltageEnable        :",self.constant_voltage_enable        )
+        print("constantVoltageStepsize      :",self.constant_voltage_stepsize      )
+        print("constantVoltageSensitivity   :",self.constant_voltage_sensitivity   )
         print("trickleDischrgEngageVoltage  :",self.trickle_discharge_engage_limit )
         print("trickleChrgEngageVoltage     :",self.trickle_charge_engage_limit    )
         print("trickleChrgRate              :",self.trickle_chrg_rate              )

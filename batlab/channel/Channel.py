@@ -187,8 +187,9 @@ class Channel:
                         stdimpedance = 0.050 / 128.0    
                 except:
                     stdimpedance = 0.050 / 128.0
-                if v > (self.settings.high_volt_cutoff - (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > 8: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
-                    self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - 8 ) # scale down by 1/16th of an amp
+                stdimpedance = stdimpedance * self.settings.constant_voltage_sensitivity
+                if v > (self.settings.high_volt_cutoff - (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > self.settings.constant_voltage_stepsize: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
+                    self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - self.settings.constant_voltage_stepsize ) # scale down by 1/32th of an amp
 
             if mode == MODE_STOPPED:
                 self.log_lvl2("PRECHARGE")
@@ -257,9 +258,9 @@ class Channel:
                         stdimpedance = 0.050 / 128.0    
                 except:
                     stdimpedance = 0.050 / 128.0
-                    
-                if v < (self.settings.low_volt_cutoff + (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > 8: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
-                    self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - 8 ) # scale down by 1/16th of an amp
+                stdimpedance = stdimpedance * self.settings.constant_voltage_sensitivity
+                if v < (self.settings.low_volt_cutoff + (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > self.settings.constant_voltage_stepsize: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
+                    self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - self.settings.constant_voltage_stepsize ) # scale down by 1/32th of an amp
             # handle feature to trickle charge the cell if close to voltage limit
             if self.settings.trickle_enable == 1 and self.settings.constant_voltage_enable == False:
                 if v < self.settings.trickle_discharge_engage_limit and self.trickle_engaged == False:
@@ -330,8 +331,9 @@ class Channel:
                         stdimpedance = 0.050 / 128.0    
                 except:
                     stdimpedance = 0.050 / 128.0
-                if v > (self.settings.high_volt_cutoff - (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > 8: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
-                    self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - 8 ) # scale down by 1/16th of an amp
+                stdimpedance = stdimpedance * self.settings.constant_voltage_sensitivity
+                if v > (self.settings.high_volt_cutoff - (self.bat.setpoints[self.slot] * stdimpedance)) and self.bat.setpoints[self.slot] > self.settings.constant_voltage_stepsize: # if voltage is getting close to the cutoff point and current is flowing at greater than a trickle
+                    self.bat.write_verify(self.slot,CURRENT_SETPOINT,self.bat.setpoints[self.slot] - self.settings.constant_voltage_stepsize ) # scale down by 1/32th of an amp
 
             # handle feature to trickle charge the cell if close to voltage limit
             if self.settings.trickle_enable == 1 and self.settings.constant_voltage_enable == False:
@@ -402,8 +404,8 @@ class Channel:
                             op_raw -= 1
                         if sp > 4.5:
                             op_raw = 575
-                        if op_raw < 8 and sp_raw > 0: #make sure that some amount of trickle current is flowing even if our setpoint is close to 0
-                            op_raw = 8
+                        if op_raw < self.settings.constant_voltage_stepsize and sp_raw > 0: #make sure that some amount of trickle current is flowing even if our setpoint is close to 0
+                            op_raw = self.settings.constant_voltage_stepsize
                         if op_raw > 575 and sp_raw <= 575: #If for some reason we read a garbage op_raw, then don't make that our new setpoint
                             op_raw = sp_raw
                         if not math.isnan(op_raw):
