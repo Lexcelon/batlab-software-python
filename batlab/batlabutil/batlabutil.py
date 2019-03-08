@@ -10,7 +10,7 @@ import threading
 
 def batlabutil():
     bp = batlab.batpool.Batpool() # Create the Batpool
-    print('Batlab Utility Script 0.5.33')
+    print('Batlab Utility Script 0.5.34')
     batlab_parse_cmd('help',bp)
     while(True):
         try:
