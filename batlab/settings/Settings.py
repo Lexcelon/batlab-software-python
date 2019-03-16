@@ -74,6 +74,7 @@ class Settings:
         self.individual_cell_logs           = 0
         self.constant_voltage_sensitivity   = 1
         self.constant_voltage_stepsize      = 8
+        self.constant_voltage_discharge_enable = False
 
         self.flag_ignore_safety_limits = False
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
@@ -177,6 +178,8 @@ class Settings:
                 self.constant_voltage_stepsize = value
             if key == "constantVoltageSensitivity": 
                 self.constant_voltage_sensitivity = value
+            if key == "constantVoltageDischargeEnable": 
+                self.constant_voltage_discharge_enable = value
 
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
         self.cell_logfile = 'batlab-log_' + self.cell_playlist_name + '_'
@@ -186,37 +189,38 @@ class Settings:
         """Print out currently loaded settings."""
         print("Currently Loaded Test Settings -",self.logfile)
         print("===========================================================")
-        print("cellPlaylistName             :",self.cell_playlist_name     )
-        print("chargeCurrentSafetyCutoff    :",self.chrg_current_cutoff    )
-        print("chargeRate                   :",self.chrg_rate              )
-        print("prechargeRate                :",self.prechrg_rate           )
-        print("chargeTemperatureCutoff      :",self.chrg_tmp_cutoff        )
-        print("dischargeCurrentSafetyCutoff :",self.dischrg_current_cutoff )
-        print("dischargeRate                :",self.dischrg_rate           )
-        print("dischargeTemperatureCutoff   :",self.dischrg_tmp_cutoff     )
-        print("highVoltageCutoff            :",self.high_volt_cutoff       )
-        print("impedanceReportingPeriod     :",self.impedance_period       )
-        print("lowVoltageCutoff             :",self.low_volt_cutoff        )
-        print("numMeasurementCycles         :",self.num_meas_cyc           )
-        print("numWarmupCycles              :",self.num_warm_up_cyc        )
-        print("reportingPeriod              :",self.reporting_period       )
-        print("restPeriod                   :",self.rest_time              )
-        print("sineWaveFrequency            :",self.sinewave_freq          )
-        print("sineWaveMagnitude            :",self.sinewave_magnitude     )
-        print("storageDischarge             :",self.bool_storage_dischrg   )
-        print("storageDischargeVoltage      :",self.storage_dischrg_volt   )
-        print("trickleEnable                :",self.trickle_enable                 )
-        print("pulseEnable                  :",self.pulse_enable                   )
-        print("constantVoltageEnable        :",self.constant_voltage_enable        )
-        print("constantVoltageStepsize      :",self.constant_voltage_stepsize      )
-        print("constantVoltageSensitivity   :",self.constant_voltage_sensitivity   )
-        print("trickleDischrgEngageVoltage  :",self.trickle_discharge_engage_limit )
-        print("trickleChrgEngageVoltage     :",self.trickle_charge_engage_limit    )
-        print("trickleChrgRate              :",self.trickle_chrg_rate              )
-        print("trickleDischrgRate           :",self.trickle_dischrg_rate           )
-        print("pulseDischrgOffTime          :",self.pulse_discharge_off_time       )
-        print("pulseDischrgOnTime           :",self.pulse_discharge_on_time        )
-        print("pulseChrgOnTime              :",self.pulse_charge_on_time           )
-        print("pulseChrgOffTime             :",self.pulse_charge_off_time          )
-        print("pulseDischrgOffRate          :",self.pulse_discharge_off_rate       )
-        print("individualCellLogs           :",self.individual_cell_logs           )
+        print("cellPlaylistName               :",self.cell_playlist_name     )
+        print("chargeCurrentSafetyCutoff      :",self.chrg_current_cutoff    )
+        print("chargeRate                     :",self.chrg_rate              )
+        print("prechargeRate                  :",self.prechrg_rate           )
+        print("chargeTemperatureCutoff        :",self.chrg_tmp_cutoff        )
+        print("dischargeCurrentSafetyCutoff   :",self.dischrg_current_cutoff )
+        print("dischargeRate                  :",self.dischrg_rate           )
+        print("dischargeTemperatureCutoff     :",self.dischrg_tmp_cutoff     )
+        print("highVoltageCutoff              :",self.high_volt_cutoff       )
+        print("impedanceReportingPeriod       :",self.impedance_period       )
+        print("lowVoltageCutoff               :",self.low_volt_cutoff        )
+        print("numMeasurementCycles           :",self.num_meas_cyc           )
+        print("numWarmupCycles                :",self.num_warm_up_cyc        )
+        print("reportingPeriod                :",self.reporting_period       )
+        print("restPeriod                     :",self.rest_time              )
+        print("sineWaveFrequency              :",self.sinewave_freq          )
+        print("sineWaveMagnitude              :",self.sinewave_magnitude     )
+        print("storageDischarge               :",self.bool_storage_dischrg   )
+        print("storageDischargeVoltage        :",self.storage_dischrg_volt   )
+        print("trickleEnable                  :",self.trickle_enable                 )
+        print("pulseEnable                    :",self.pulse_enable                   )
+        print("constantVoltageEnable          :",self.constant_voltage_enable        )
+        print("constantVoltageDischargeEnable :",self.constant_voltage_discharge_enable)
+        print("constantVoltageStepsize        :",self.constant_voltage_stepsize      )
+        print("constantVoltageSensitivity     :",self.constant_voltage_sensitivity   )
+        print("trickleDischrgEngageVoltage    :",self.trickle_discharge_engage_limit )
+        print("trickleChrgEngageVoltage       :",self.trickle_charge_engage_limit    )
+        print("trickleChrgRate                :",self.trickle_chrg_rate              )
+        print("trickleDischrgRate             :",self.trickle_dischrg_rate           )
+        print("pulseDischrgOffTime            :",self.pulse_discharge_off_time       )
+        print("pulseDischrgOnTime             :",self.pulse_discharge_on_time        )
+        print("pulseChrgOnTime                :",self.pulse_charge_on_time           )
+        print("pulseChrgOffTime               :",self.pulse_charge_off_time          )
+        print("pulseDischrgOffRate            :",self.pulse_discharge_off_rate       )
+        print("individualCellLogs             :",self.individual_cell_logs           )

@@ -319,7 +319,7 @@ class Channel:
                         self.pulse_state = True
                         self.pulse_charge_on_time = datetime.datetime.now()
 
-            elif self.settings.constant_voltage_enable == True: # handle constant voltage charge
+            elif self.settings.constant_voltage_discharge_enable == True: # handle constant voltage discharge
                 stdimpedance = 0.050 / 128.0
                 try:
                     stdimpedance = self.zavg / 128.0
