@@ -137,6 +137,7 @@ COMMAND_ERROR          = 257
 # test manager constants
 TT_DISCHARGE = 0
 TT_CYCLE = 1
+TT_PRIME = 2
 
 TS_IDLE          = 0
 TS_CHARGE        = 1

@@ -30,6 +30,7 @@ class Settings:
         sineWaveMagnitude
         storageDischarge: Boolean
         storageDischargeVoltage: Volts
+        OCV_chargeInterval: Coulombs
 
     """
     
@@ -75,6 +76,7 @@ class Settings:
         self.constant_voltage_sensitivity   = 1
         self.constant_voltage_stepsize      = 8
         self.constant_voltage_discharge_enable = False
+        self.ocv_charge_interval            = 72
 
         self.flag_ignore_safety_limits = False
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
@@ -180,6 +182,8 @@ class Settings:
                 self.constant_voltage_sensitivity = value
             if key == "constantVoltageDischargeEnable": 
                 self.constant_voltage_discharge_enable = value
+            if key == "OCV_chargeInterval":
+                self.ocv_charge_interval = value
 
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
         self.cell_logfile = 'batlab-log_' + self.cell_playlist_name + '_'

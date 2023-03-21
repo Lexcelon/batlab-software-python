@@ -77,7 +77,7 @@ class Batlab:
         thread.start()
         #print("batlab:",thread.getName())
         if self.read(0x05,0x01).value() == 257: #then we're not in the bootloader
-            # self.write(UNIT,SETTINGS,SET_TRIM_OUTPUT)  -- no longer do this because it is buggy in V3 Firmware.
+            # self.write(UNIT,SETTINGS,SET_TRIM_OUTPUT)  # no longer do this because it is buggy in V3 Firmware.
             self.write(UNIT,WATCHDOG_TIMER,WDT_RESET) #do this so the watchdog is happy during these initialization commands
             self.write(CELL0,MODE,MODE_IDLE)
             self.write(CELL1,MODE,MODE_IDLE)
@@ -105,7 +105,10 @@ class Batlab:
             
             self.ver = str(self.read(0x04,0x02).data)
             
-            if int(self.ver) > 3:
+            if int(self.ver) > 8:
+                self.write_verify(UNIT,SETTINGS,5)
+                self.write(UNIT,WATCHDOG_TIMER,WDT_RESET)
+            elif int(self.ver) > 3:
                 self.write_verify(UNIT,SETTINGS,SET_WATCHDOG_TIMER) #this setting is only meaningful if the firmware version is 4 or greater.
                 self.write(UNIT,WATCHDOG_TIMER,WDT_RESET)
                 
@@ -215,7 +218,7 @@ class Batlab:
         if value > 65535 or value < -65535:
             print("Invalid value: 16 bit value expected")
             return failresponse
-        if(value & 0x8000): #convert large numbers into negative numbers because the to_bytes call is expecting an int16
+        if(abs(value) >= 0x8000): #convert large numbers into negative numbers because the to_bytes call is expecting an int16
             value = -0x10000 + value
         # patch for firmware < 3 ... current compensation bug in firmware, so moving the control loop to software.
         # we do this by now keeping track of the setpoint in software, and then the control loop tweaks the firmware setpoint
@@ -226,8 +229,8 @@ class Batlab:
                 value = 0
             self.setpoints[namespace] = value
         # make sure we cant turn on the current compensation control loop in firmware
-        if addr == SETTINGS and namespace == UNIT:
-            value &= ~0x0003
+        # if addr == SETTINGS and namespace == UNIT:
+        #     value &= ~0x0003
 
         try:
             with self.critical_write:
@@ -355,6 +358,23 @@ class Batlab:
 
         return z
     
+    def ocv(self,cell):
+        mode = self.read(cell,MODE).data #get previous state
+        # start OCV measurment
+        self.write(cell,MODE,MODE_STOPPED)
+        v = self.read(cell,VOLTAGE).asvoltage()
+        v_prev = self.read(cell,VOLTAGE).asvoltage()
+        while v < (v_prev * 0.99) or v > (v_prev * 1.01):
+            v_prev = v
+            v = self.read(cell,VOLTAGE).asvoltage()
+            sleep(0.2)
+        self.write(cell,MODE,mode) #restore previous state
+        nowmode = self.read(cell,MODE)
+        while nowmode != mode:
+            self.write(cell,MODE,mode)
+            nowmode = self.read(cell,MODE)
+        return v
+    
     def charge(self,cell):
         """A macro for taking a charge measurement that handles the case if the charge register rolls over in between high and low reads"""
         set = self.read(UNIT,SETTINGS).data
@@ -395,13 +415,16 @@ class Batlab:
             byte = f.read(1)
             ctr = 0x0400
             while byte:
-                self.write(BOOTLOADER,BL_ADDR,int(ctr))
-                self.write(BOOTLOADER,BL_DATA,int(ord(byte)))
-                bb = self.read(BOOTLOADER,BL_DATA).value()
-                if(bb != int(ord(byte))):
-                    logging.warning("Data Mismatch. Trying again")
-                    continue
-                print(str(ctr - 0x03FF) + " of 15360: " + str(bb) )
+                if byte != 0xFF:
+                    self.write(BOOTLOADER,BL_ADDR,int(ctr))
+                    self.write(BOOTLOADER,BL_DATA,int(ord(byte)))
+                    bb = self.read(BOOTLOADER,BL_DATA).value()
+                    sleep(0.001)
+                    if(bb != int(ord(byte))):
+                        logging.warning("Data Mismatch. Trying again")
+                        sleep(0.1)
+                        continue
+                    print(str(ctr - 0x03FF) + " of 15360: " + str(bb) )
                 ctr = ctr + 1
                 byte = f.read(1)
         # attempt to reboot into the new image

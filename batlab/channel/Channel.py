@@ -31,7 +31,7 @@ class Channel:
         self.bat = bat
         self.slot = slot
         self.name = None # name of the cell in this channel
-        #TT_DISCHARGE,TT_CYCLE
+        #TT_DISCHARGE,TT_CYCLE,TT_PRIME
         self.test_type = TT_CYCLE
         #TS_IDLE,TS_CHARGE,TS_PRECHARGE,TS_DISCHARGE,TS_CHARGEREST,TS_DISCHARGEREST,TS_POSTDISCHARGE
         self.test_state = TS_IDLE
@@ -101,17 +101,27 @@ class Channel:
         self.bat.write_verify(self.slot,TEMP_LIMIT_DCHG,batlab.encoder.Encoder(self.settings.dischrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
         self.bat.write(self.slot,CHARGEH,0)
         #self.bat.write(self.slot,CHARGEL,0) # only need to write to one of the charge registers to clear them
+        self.bat.write_verify(UNIT,ZERO_AMP_THRESH,batlab.encoder.Encoder(0.01).ascurrent())
         
         if self.settings.constant_voltage_enable == True: #if we're doing constant voltage charging, we need to have current resolution down to the small range
             self.bat.write_verify(UNIT,ZERO_AMP_THRESH,batlab.encoder.Encoder(0.05).ascurrent())
+
+        self.ocv = self.bat.ocv(self.slot)
+        logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(datetime.datetime.now()) + ',' + str(self.ocv)
+        if self.settings.individual_cell_logs == 0:
+            self.bat.logger.log(logstr,self.settings.logfile)
+        else:
+            self.bat.logger.log(logstr,self.settings.cell_logfile + self.name + '.csv')
+
+        self.log_lvl2("START")
 
         # Actually start the test
         if(self.test_type == TT_CYCLE):
             self.bat.write_verify(self.slot,CURRENT_SETPOINT,0)
             self.bat.write(self.slot,MODE,MODE_CHARGE)
             sleep(0.010)
-            self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.prechrg_rate).assetpoint())
-            self.test_state = TS_PRECHARGE
+            self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.chrg_rate).assetpoint())
+            self.test_state = TS_CHARGE
         else: # Simple Discharge Test
             self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.dischrg_rate).assetpoint())
             self.bat.write(self.slot,MODE,MODE_DISCHARGE)
@@ -131,6 +141,8 @@ class Channel:
         self.icnt = 0
         self.temperature0 = self.bat.read(self.slot,TEMPERATURE).astemperature_c(self.bat.R,self.bat.B)
         self.q = 0
+        self.qprev = 0
+        self.q_prev_cycle = 0
         self.e = 0
         self.deltat = 0
         self.current_cycle = 0
@@ -153,11 +165,11 @@ class Channel:
 
     def log_lvl2(self,type):
         """Logs 'level 2' test data to the log file and resets the voltage and current average and resets the charge counter back to zero."""
-        # Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s),VCC
+        # Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Runtime (s),VCC
         state = l_test_state[self.test_state]
         runtime = datetime.datetime.now() - self.last_lvl2_time
         self.last_lvl2_time = datetime.datetime.now()
-        logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(datetime.datetime.now()) + ',,,,,,,' + ',' + type + ',' + '{:.4f}'.format(self.q) + ',' + '{:.4f}'.format(self.e) + ',' + '{:.4f}'.format(self.zavg) + ',' + '{:.4f}'.format(self.deltat) + ',' + '{:.4f}'.format(self.iavg) + ',' + '{:.4f}'.format(self.vavg) + ',' + str(runtime.total_seconds()) + ','
+        logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(datetime.datetime.now()) + ',,,,,,,' + ',' + type + ',' + '{:.4f}'.format(self.q) + ',' + str(runtime.total_seconds()) + ',' + '{:.4f}'.format(self.vcc)
         self.bat.logger.log(logstr,self.settings.logfile)
         # print(logstr)
         # print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot)
@@ -218,7 +230,7 @@ class Channel:
 
                 self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.dischrg_rate).assetpoint())
                 self.bat.write(self.slot,MODE,MODE_DISCHARGE)
-                self.current_cycle += 1
+                # self.current_cycle += 1
 
         elif self.test_state == TS_DISCHARGE:
             # handle feature to end test after certain amount of time
@@ -267,14 +279,23 @@ class Channel:
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.trickle_dischrg_rate).assetpoint())
                     self.trickle_engaged = True
 
-                 
-
-
             if mode == MODE_STOPPED:
                 if self.test_type == TT_CYCLE:
                     self.log_lvl2("DISCHARGE")
                     self.test_state = TS_DISCHARGEREST
                     self.rest_time = datetime.datetime.now()
+
+                if self.test_type == TT_PRIME:
+                    if self.q > self.q_prev_cycle * 1.01:
+                        self.q_prev_cycle = self.q
+                        self.log_lvl2("PRIME")
+                        self.settings.num_meas_cyc += 1
+                        self.test_state = TS_DISCHARGEREST
+                        self.rest_time = datetime.datetime.now()
+                    else:
+                        self.log_lvl2("PRIME")
+                        self.test_state = TS_IDLE
+                        print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot)
 
                 if self.test_type == TT_DISCHARGE:
                     self.log_lvl2("DISCHARGE")
@@ -284,6 +305,7 @@ class Channel:
         elif self.test_state == TS_DISCHARGEREST:
             if (datetime.datetime.now() - self.rest_time).total_seconds() > self.settings.rest_time:
                 self.log_lvl2("DISCHARGEREST")
+                self.current_cycle += 1
                 self.test_state = TS_CHARGE
 
                 # reset pulse charge variables
@@ -384,34 +406,34 @@ class Channel:
                 
                 
                 with self.bat.critical_section:
-                    #patch for current compensation problem in firmware versions <= 3
-                    #fix is to move the current compensation control loop to software and turn it off in hardware.
-                    mode = self.bat.read(self.slot,MODE).asmode()
-                    i = self.bat.read(self.slot,CURRENT).ascurrent()
-                    p = self.bat.read(self.slot,CURRENT_SETPOINT)
-                    op = p.assetpoint() # actual operating point
-                    op_raw = p.data
-                    sp_raw = self.bat.setpoints[self.slot] #current setpoint
-                    sp = sp_raw / 128.0
-                    if mode == 'MODE_CHARGE' or mode == 'MODE_DISCHARGE':
-                        #print(mode,self.slot,i,op,sp)
-                        if i > 0 and (sp >= 0.35 or i < 0.37):
-                            if i < (sp - 0.01):
-                                op_raw += 1
-                            elif i > (sp + 0.01):
-                                op_raw -= 1
-                        if i > 4.02:
-                            op_raw -= 1
-                        if sp > 4.5:
-                            op_raw = 575
-                        if op_raw < self.settings.constant_voltage_stepsize and sp_raw > 0: #make sure that some amount of trickle current is flowing even if our setpoint is close to 0
-                            op_raw = self.settings.constant_voltage_stepsize
-                        if op_raw > 575 and sp_raw <= 575: #If for some reason we read a garbage op_raw, then don't make that our new setpoint
-                            op_raw = sp_raw
-                        if not math.isnan(op_raw):
-                            # writes to the firmware setpoitn will update the software setpoint, so we need to restore the software setpoint after we write 
-                            self.bat.write(self.slot,CURRENT_SETPOINT,op_raw)
-                            self.bat.setpoints[self.slot] = sp_raw
+                    # patch for current compensation problem in firmware versions <= 3
+                    # fix is to move the current compensation control loop to software and turn it off in hardware.
+                    # mode = self.bat.read(self.slot,MODE).asmode()
+                    # i = self.bat.read(self.slot,CURRENT).ascurrent()
+                    # p = self.bat.read(self.slot,CURRENT_SETPOINT)
+                    # op = p.assetpoint() # actual operating point
+                    # op_raw = p.data
+                    # sp_raw = self.bat.setpoints[self.slot] #current setpoint
+                    # sp = sp_raw / 128.0
+                    # if mode == 'MODE_CHARGE' or mode == 'MODE_DISCHARGE':
+                    #     print(mode,self.slot,i,op,sp)
+                    #     if i > 0 and (sp >= 0.35 or i < 0.37):
+                    #         if i < (sp - 0.01):
+                    #             op_raw += 1
+                    #         elif i > (sp + 0.01):
+                    #             op_raw -= 1
+                    #     if i > 4.02:
+                    #         op_raw -= 1
+                    #     if sp > 4.5:
+                    #         op_raw = 575
+                    #     if op_raw < self.settings.constant_voltage_stepsize and sp_raw > 0: #make sure that some amount of trickle current is flowing even if our setpoint is close to 0
+                    #         op_raw = self.settings.constant_voltage_stepsize
+                    #     if op_raw > 575 and sp_raw <= 575: #If for some reason we read a garbage op_raw, then don't make that our new setpoint
+                    #         op_raw = sp_raw
+                    #     if not math.isnan(op_raw):
+                    #         # writes to the firmware setpoitn will update the software setpoint, so we need to restore the software setpoint after we write 
+                    #         self.bat.write(self.slot,CURRENT_SETPOINT,op_raw)
+                    #         self.bat.setpoints[self.slot] = sp_raw
                             
                     #reset the batlab watchdog timer (shuts off current flow if it reaches 0 --- 256 to 0 in about 30 seconds)
                     self.bat.write(UNIT,WATCHDOG_TIMER,WDT_RESET) #If firmware version is < 3, this command will not do anything
@@ -474,10 +496,16 @@ class Channel:
                                 self.last_impedance_time = datetime.datetime.now()
                                 self.zcnt += 1
                                 self.zavg += (z - self.zavg) / self.zcnt
-                                logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(self.vprev) + ',' + '{:.4f}'.format(self.iprev) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
+                                logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(self.vprev) + ',' + '{:.4f}'.format(self.iprev) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc)
+                            elif self.settings.ocv_charge_interval > 0 and (self.q - self.q_prev) > self.settings.ocv_charge_interval:
+                                self.q_prev = self.q
+                                self.ocv = self.bat.ocv(self.slot)
+                                logstr += ',' + '{:.4f}'.format(self.ocv)                            
                             else:
-                                logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc) + ',' + str(op_raw) + ',' + str(sp_raw) + ',' + str(dty)
+                                logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc)
                             
+
+
                             if self.settings.individual_cell_logs == 0:
                                 self.bat.logger.log(logstr,self.settings.logfile)
                             else:
