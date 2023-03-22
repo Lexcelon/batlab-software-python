@@ -6,22 +6,23 @@
   "numWarmupCycles": 0,
   "prechargeRate": 4,
   "OCV_chargeInterval": 72,
+  "CVdischarge": 1,
 
   "constantVoltageEnable": 0,
   "constantVoltageDischargeEnable": 0,
 
   "chargeCurrentSafetyCutoff": 4.096,
-  "chargeRate": 3,
+  "chargeRate": 4,
   "chargeTemperatureCutoff": 55,
   "highVoltageCutoff": 4.2,
 
   "dischargeCurrentSafetyCutoff": 4.096,
-  "dischargeRate": 3,
+  "dischargeRate": 4,
   "dischargeTemperatureCutoff": 55,
   "lowVoltageCutoff": 2.5,
 
   "impedanceReportingPeriod": 600, 
-  "restPeriod": 300,
+  "restPeriod": 500,
   "sineWaveFrequency": 39.0625,
   "sineWaveMagnitude": 2.0,
 

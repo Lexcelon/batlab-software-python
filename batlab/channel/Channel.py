@@ -31,8 +31,6 @@ class Channel:
         self.bat = bat
         self.slot = slot
         self.name = None # name of the cell in this channel
-        #TT_DISCHARGE,TT_CYCLE,TT_PRIME
-        self.test_type = TT_CYCLE
         #TS_IDLE,TS_CHARGE,TS_PRECHARGE,TS_DISCHARGE,TS_CHARGEREST,TS_DISCHARGEREST,TS_POSTDISCHARGE
         self.test_state = TS_IDLE
         # test control variables
@@ -40,6 +38,7 @@ class Channel:
         self.killevt = threading.Event()
 
         self.settings = self.bat.settings
+        self.test_type = self.settings.test_type
         self.state = 'IDLE'
         self.timeout_time = None
 
@@ -85,7 +84,7 @@ class Channel:
         
         #print the header for the individual cell logfiles if needed
         if self.settings.individual_cell_logs != 0:
-            logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Energy (J),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Energy Capacity (J),Avg Impedance (Ohm),delta Temperature (C),Avg Current (A),Avg Voltage,Runtime (s),VCC (V)"
+            logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Runtime (s),VCC (V)"
             self.bat.logger.log(logfile_headerstr,self.settings.cell_logfile + self.name + '.csv')
 
         # Initialize the test settings
@@ -105,6 +104,13 @@ class Channel:
         
         if self.settings.constant_voltage_enable == True: #if we're doing constant voltage charging, we need to have current resolution down to the small range
             self.bat.write_verify(UNIT,ZERO_AMP_THRESH,batlab.encoder.Encoder(0.05).ascurrent())
+        
+        settings = self.bat.read(UNIT,SETTINGS)  
+        if self.settings.cv_discharge == True:  
+            settings = settings.data | SET_CV_DISCHARGE
+        else:
+            settings = settings.data & ~SET_CV_DISCHARGE
+        self.bat.write_verify(UNIT,SETTINGS,settings)
 
         self.ocv = self.bat.ocv(self.slot)
         logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(datetime.datetime.now()) + ',' + str(self.ocv)
@@ -112,8 +118,6 @@ class Channel:
             self.bat.logger.log(logstr,self.settings.logfile)
         else:
             self.bat.logger.log(logstr,self.settings.cell_logfile + self.name + '.csv')
-
-        self.log_lvl2("START")
 
         # Actually start the test
         if(self.test_type == TT_CYCLE):
@@ -141,7 +145,7 @@ class Channel:
         self.icnt = 0
         self.temperature0 = self.bat.read(self.slot,TEMPERATURE).astemperature_c(self.bat.R,self.bat.B)
         self.q = 0
-        self.qprev = 0
+        self.q_prev = 0
         self.q_prev_cycle = 0
         self.e = 0
         self.deltat = 0
@@ -161,6 +165,8 @@ class Channel:
 
         # control variables for trickle charge/discharge at voltage limits
         self.trickle_engaged = False
+
+        self.log_lvl2("START")
 
 
     def log_lvl2(self,type):
@@ -286,7 +292,7 @@ class Channel:
                     self.rest_time = datetime.datetime.now()
 
                 if self.test_type == TT_PRIME:
-                    if self.q > self.q_prev_cycle * 1.01:
+                    if self.q > self.q_prev_cycle * 1.005 or self.q < self.q_prev_cycle * 0.995:
                         self.q_prev_cycle = self.q
                         self.log_lvl2("PRIME")
                         self.settings.num_meas_cyc += 1
@@ -500,7 +506,7 @@ class Channel:
                             elif self.settings.ocv_charge_interval > 0 and (self.q - self.q_prev) > self.settings.ocv_charge_interval:
                                 self.q_prev = self.q
                                 self.ocv = self.bat.ocv(self.slot)
-                                logstr += ',' + '{:.4f}'.format(self.ocv)                            
+                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{self.ocv},0,{t},,,{q},{state},,,,,,,,{self.vcc}"                           
                             else:
                                 logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc)
                             

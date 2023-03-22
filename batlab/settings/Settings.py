@@ -1,5 +1,6 @@
 import logging
 import json
+from batlab.constants import *
 
 class Settings:
     """Holds information the test manager uses to run tests on a cell.
@@ -31,6 +32,8 @@ class Settings:
         storageDischarge: Boolean
         storageDischargeVoltage: Volts
         OCV_chargeInterval: Coulombs
+        CVdischarge: Boolean
+        testType: CYCLE, DISCHARGE, PRIME
 
     """
     
@@ -77,6 +80,8 @@ class Settings:
         self.constant_voltage_stepsize      = 8
         self.constant_voltage_discharge_enable = False
         self.ocv_charge_interval            = 72
+        self.cv_discharge                   = False
+        self.test_type                      = TT_CYCLE
 
         self.flag_ignore_safety_limits = False
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
@@ -184,6 +189,15 @@ class Settings:
                 self.constant_voltage_discharge_enable = value
             if key == "OCV_chargeInterval":
                 self.ocv_charge_interval = value
+            if key == "CVdischarge":
+                self.cv_discharge = value
+            if key == "testType":
+                if value == "CYCLE":
+                    self.test_type = TT_CYCLE
+                elif value == "DISCHARGE":
+                    self.test_type = TT_DISCHARGE
+                elif value == "PRIME":
+                    self.test_type = TT_PRIME
 
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
         self.cell_logfile = 'batlab-log_' + self.cell_playlist_name + '_'

@@ -360,27 +360,28 @@ class Batlab:
     
     def ocv(self,cell):
         mode = self.read(cell,MODE).data #get previous state
-        # start OCV measurment
-        self.write(cell,MODE,MODE_STOPPED)
-        v = self.read(cell,VOLTAGE).asvoltage()
+        self.write(cell,MODE,MODE_IDLE)
         v_prev = self.read(cell,VOLTAGE).asvoltage()
-        while v < (v_prev * 0.99) or v > (v_prev * 1.01):
+        sleep(1)
+        v = self.read(cell,VOLTAGE).asvoltage()
+        while v < (v_prev * 0.995) or v > (v_prev * 1.005):
             v_prev = v
             v = self.read(cell,VOLTAGE).asvoltage()
-            sleep(0.2)
+            sleep(1)
         self.write(cell,MODE,mode) #restore previous state
-        nowmode = self.read(cell,MODE)
-        while nowmode != mode:
-            self.write(cell,MODE,mode)
-            nowmode = self.read(cell,MODE)
+        # nowmode = self.read(cell,MODE)
+        # while nowmode != mode:
+        #     self.write(cell,MODE,mode)
+        #     nowmode = self.read(cell,MODE)
+        self.write(cell,MODE,mode)
         return v
     
     def charge(self,cell):
         """A macro for taking a charge measurement that handles the case if the charge register rolls over in between high and low reads"""
         set = self.read(UNIT,SETTINGS).data
         multiplier = 6.0
-        if not (set & SET_CH0_HI_RES == 0):
-            multiplier = 1.0
+        # if not (set & SET_CH0_HI_RES == 0):
+        #     multiplier = 1.0
         ch = self.read(cell,CHARGEH).data
         cl = self.read(cell,CHARGEL).data
         chp = self.read(cell,CHARGEH).data
