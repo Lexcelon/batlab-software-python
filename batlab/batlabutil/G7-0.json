@@ -1,5 +1,6 @@
 {
   "cellPlaylistName": "G7v0",
+  "testType": "CYCLE",
   "individualCellLogs": 1,
   "reportingPeriod": 1.0,
   "numMeasurementCycles": 1,

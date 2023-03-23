@@ -359,7 +359,7 @@ class Batlab:
         return z
     
     def ocv(self,cell):
-        mode = self.read(cell,MODE).data #get previous state
+        mode_prev = self.read(cell,MODE).data
         self.write(cell,MODE,MODE_IDLE)
         v_prev = self.read(cell,VOLTAGE).asvoltage()
         sleep(1)
@@ -368,12 +368,17 @@ class Batlab:
             v_prev = v
             v = self.read(cell,VOLTAGE).asvoltage()
             sleep(1)
-        self.write(cell,MODE,mode) #restore previous state
-        # nowmode = self.read(cell,MODE)
-        # while nowmode != mode:
-        #     self.write(cell,MODE,mode)
-        #     nowmode = self.read(cell,MODE)
-        self.write(cell,MODE,mode)
+        if mode_prev == MODE_CV_CHARGE:
+            mode_prev = MODE_CHARGE
+        elif mode_prev == MODE_CV_DISCHARGE:
+            mode_prev = MODE_DISCHARGE
+        self.write(cell,MODE,mode_prev) #restore previous state
+        sleep(0.1)
+        nowmode = self.read(cell,MODE).data
+        while nowmode != mode_prev:
+            self.write(cell,MODE,mode_prev)
+            sleep(0.1)
+            nowmode = self.read(cell,MODE).data
         return v
     
     def charge(self,cell):
@@ -425,7 +430,7 @@ class Batlab:
                         logging.warning("Data Mismatch. Trying again")
                         sleep(0.1)
                         continue
-                    print(str(ctr - 0x03FF) + " of 15360: " + str(bb) )
+                    print(f"{ctr - 0x03FF} of 15360")
                 ctr = ctr + 1
                 byte = f.read(1)
         # attempt to reboot into the new image
