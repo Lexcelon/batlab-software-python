@@ -420,7 +420,7 @@ class Batlab:
                     self.write(BOOTLOADER,BL_ADDR,int(ctr))
                     self.write(BOOTLOADER,BL_DATA,int(ord(byte)))
                     bb = self.read(BOOTLOADER,BL_DATA).value()
-                    sleep(0.001)
+                    # sleep(0.001)
                     if(bb != int(ord(byte))):
                         logging.warning("Data Mismatch. Trying again")
                         sleep(0.1)

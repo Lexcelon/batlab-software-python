@@ -84,7 +84,7 @@ class Channel:
         
         #print the header for the individual cell logfiles if needed
         if self.settings.individual_cell_logs != 0:
-            logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Charge (Coulombs),Test State,Test Type,Charge Capacity (Coulombs),Runtime (s),VCC (V)"
+            logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Short-term Charge (C),Total Charge (C), Test State,Test Type,Charge Capacity (Coulombs),Runtime (s),VCC (V)"
             self.bat.logger.log(logfile_headerstr,self.settings.cell_logfile + self.name + '.csv')
 
         # Initialize the test settings
@@ -113,7 +113,7 @@ class Channel:
         self.bat.write_verify(UNIT,SETTINGS,settings)
 
         self.ocv = self.bat.ocv(self.slot)
-        logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(datetime.datetime.now()) + ',' + str(self.ocv)
+        logstr = f"{self.name},{self.bat.sn},{self.slot},{str(datetime.datetime.now())},{self.ocv},0,,,,OPEN CIRCUIT"
         if self.settings.individual_cell_logs == 0:
             self.bat.logger.log(logstr,self.settings.logfile)
         else:
@@ -175,7 +175,7 @@ class Channel:
         state = l_test_state[self.test_state]
         runtime = datetime.datetime.now() - self.last_lvl2_time
         self.last_lvl2_time = datetime.datetime.now()
-        logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(datetime.datetime.now()) + ',,,,,,,' + ',' + type + ',' + '{:.4f}'.format(self.q) + ',' + str(runtime.total_seconds()) + ',' + '{:.4f}'.format(self.vcc)
+        logstr = f"{self.name},{self.bat.sn},{self.slot},{datetime.datetime.now()},,,,,,,{type},,{self.q:.4f},{runtime.total_seconds()},{self.vcc:.4f}"
         self.bat.logger.log(logstr,self.settings.logfile)
         # print(logstr)
         # print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot)
@@ -457,8 +457,6 @@ class Channel:
                         q = self.bat.charge(self.slot) #self.bat.read(self.slot,CHARGEH).data * 65536 + self.bat.read(self.slot,CHARGEL).data
                         e = q * self.vavg
                         mode = self.bat.read(self.slot,MODE).data
-                        err = self.bat.read(self.slot,ERROR).data
-                        dty = self.bat.read(self.slot,DUTY).data
                         
                         #take VCC measurement - cannot safely continue test if VCC is too low
                         vc  = self.bat.read(UNIT,VCC).asvcc()
@@ -502,14 +500,13 @@ class Channel:
                                 self.last_impedance_time = datetime.datetime.now()
                                 self.zcnt += 1
                                 self.zavg += (z - self.zavg) / self.zcnt
-                                logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(self.vprev) + ',' + '{:.4f}'.format(self.iprev) + ',' + '{:.4f}'.format(t) + ',' + '{:.4f}'.format(z) + ',' + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc)
+                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},,,{t:.4f},{z:.4f},{q:.4f},,{state},,,,{self.vcc:.4f}"
                             elif self.settings.ocv_charge_interval > 0 and (self.q - self.q_prev) > self.settings.ocv_charge_interval:
                                 self.q_prev = self.q
                                 self.ocv = self.bat.ocv(self.slot)
-                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{self.ocv},0,{t},,,{q},{state},,,,,,,,{self.vcc}"                           
+                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{self.ocv:.4f},0,{t:.4f},,{q:.4f},,{state},,,,{self.vcc}"               
                             else:
-                                logstr = str(self.name) + ',' + str(self.bat.sn) + ',' + str(self.slot) + ',' + str(ts) + ',' + '{:.4f}'.format(v) + ',' + '{:.4f}'.format(i) + ',' + '{:.4f}'.format(t) + ',,' + '{:.4f}'.format(e) + ',' + '{:.4f}'.format(q) + ',' + state + ',,,,,,,' + ',,' + '{:.4f}'.format(self.vcc)
-                            
+                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{v:.4f},{i:.4f},{t:.4f},,{q:.4f},,{state},{self.test_type},,,{self.vcc:.4f}" 
 
 
                             if self.settings.individual_cell_logs == 0:
