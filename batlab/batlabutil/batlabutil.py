@@ -150,7 +150,7 @@ def batlab_parse_cmd(cmd,bp):
                                 print("Can't start test - No Cell Detected")
                                 misses += 1
                             else:
-                                bat.channel[slot].start_test(p[2+cell],1)
+                                bat.channel[slot].start_test(p[2+cell])
                             cell += 1
                         else:
                             print("Started cycle test on",cell - misses,"cells")
@@ -425,7 +425,7 @@ def batlab_parse_cmd(cmd,bp):
                                 if b.channel[cell].is_testing():
                                     print("Can't start test - Test is already running on this channel")
                                     continue
-                                b.channel[cell].start_test(p[2+cell],TT_CYCLE)
+                                b.channel[cell].start_test(p[2+cell])
                         else:
                             print("Invalid Usage.")
                             return
@@ -434,14 +434,12 @@ def batlab_parse_cmd(cmd,bp):
                         if b.channel[cell].is_testing():
                             print("Can't start test - Test is already running on this channel")
                             return
-                        b.channel[cell].start_test(p[2],TT_CYCLE)
+                        b.channel[cell].start_test(p[2])
                     #except:
                     #    print("Invalid Usage.")
                         
 
                 if p[0] == 'dischargetest' and len(p) > 2:
-                    TT_DISCHARGE = 0
-                    TT_CYCLE = 1
                     try:
                         cell = int(eval(p[1]))
                         if b.channel[cell].is_testing():
@@ -451,7 +449,7 @@ def batlab_parse_cmd(cmd,bp):
                             timeout = eval(p[3])
                         else:
                             timeout = None
-                            b.channel[cell].start_test(p[2],TT_DISCHARGE,timeout)
+                            b.channel[cell].start_test(p[2],timeout)
                     except:
                         print("Invalid Usage.")
 

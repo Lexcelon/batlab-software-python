@@ -91,7 +91,10 @@ def test_calibration():
         ps_curr_sum = 0
         for i in range(8):
             bat_curr_sum += bl.read(cell,CURRENT).ascurrent()
-            ps_curr_sum += ps.get_current()
+            ps_curr = ps.get_current()
+            if ps_curr == 0.0:
+                raise Fault('Current is 0.0 A. Check connections. Batlab may have a blown fuse.')
+            ps_curr_sum += ps_curr
             sleep(0.05)
         bat_current = bat_curr_sum / 8
         ps_current = ps_curr_sum / 8
@@ -114,6 +117,7 @@ except:
     raise Fault('Ensure that Batlab is connected to computer')
 # enable current feedback in firmware
 bl.write(UNIT,SETTINGS,5)
+bl.write(UNIT,ZERO_AMP_THRESH,batlab.encoder.Encoder(0.05).ascurrent())
 # make sure Batlab is getting 5V power (needed for fan)
 if (bl.read(COMMS, PSU).data != 1):
     raise Fault('Ensure that 5V power supply is connected to Batlab.')
