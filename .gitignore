@@ -12,3 +12,5 @@ build/lib/batlab/constants.py
 build/lib/batlab/testmgr.py
 /dist/
 docs/build/
+.vscode/
+__pycache__/
