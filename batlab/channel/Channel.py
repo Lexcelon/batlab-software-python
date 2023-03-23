@@ -489,8 +489,8 @@ class Channel:
                             if (ts - self.last_impedance_time).total_seconds() > self.settings.impedance_period and self.settings.impedance_period > 0 and self.trickle_engaged == False:
                                 z = self.bat.impedance(self.slot)
                                 if math.isnan(z):
-                                    z = self.zavg
-                                    print("error in impedance measurement...using previous result")
+                                    z = 0
+                                    print("error in impedance measurement")
                                 self.last_impedance_time = datetime.datetime.now()
                                 self.zcnt += 1
                                 self.zavg += (z - self.zavg) / self.zcnt
@@ -498,8 +498,7 @@ class Channel:
                             elif self.settings.ocv_charge_interval > 0 and (self.q - self.q_prev) > self.settings.ocv_charge_interval:
                                 self.q_prev = self.q
                                 self.ocv = self.bat.ocv(self.slot)
-                                self.i = self.bat.read(self.slot,CURRENT).ascurrent()
-                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{self.ocv:.4f},{self.i},{t:.4f},,{q:.4f},,{state},{type},{self.runtime()},{self.vcc}"               
+                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{self.ocv:.4f},{i},{t:.4f},,{q:.4f},,{state},{type},{self.runtime()},{self.vcc}"               
                             else:
                                 logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{v:.4f},{i:.4f},{t:.4f},,{q:.4f},,{state},{self.test_type},{self.runtime()},{self.vcc:.4f}" 
 
