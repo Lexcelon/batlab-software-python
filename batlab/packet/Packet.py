@@ -147,8 +147,8 @@ class Packet:
         if(math.isnan(self.data)):
             return float(('nan'))
         """Represents current measurement as float current in Amps."""
-        if(self.data & 0x8000): # the current can be negative
-            self.data = -0x10000 + self.data
+        # if(self.data & 0x8000): # the current can be negative -- No it can't
+        #     self.data = -0x10000 + self.data
         return self.data * 4.096 / 2**15
     
     def print_packet(self):

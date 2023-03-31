@@ -498,7 +498,7 @@ class Channel:
                             elif self.settings.ocv_charge_interval > 0 and ((q - self.q_prev) > self.settings.ocv_charge_interval):
                                 self.q_prev = q
                                 self.ocv = self.bat.ocv(self.slot)
-                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{self.ocv:.4f},{i},{t:.4f},,{q:.4f},,OCV,{type},{self.runtime()},{self.vcc}"               
+                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{self.ocv:.4f},{0},{t:.4f},,{q:.4f},,OCV,{type},{self.runtime()},{self.vcc}"               
                             else:
                                 logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{v:.4f},{i:.4f},{t:.4f},,{q:.4f},,{state},{type},{self.runtime()},{self.vcc:.4f}" 
 
