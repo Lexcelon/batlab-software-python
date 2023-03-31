@@ -103,12 +103,12 @@ class Batlab:
                 a = self.read(0x04,0x00).data
                 b = self.read(0x04,0x01).data
             
-            self.ver = str(self.read(0x04,0x02).data)
+            self.ver = str(self.read(UNIT,FIRMWARE_VER).data)
             
-            if int(self.ver) > 8:
+            if int(self.ver) > 7:
                 self.write_verify(UNIT,SETTINGS,5)
                 self.write(UNIT,WATCHDOG_TIMER,WDT_RESET)
-            elif int(self.ver) > 3:
+            elif int(self.ver) > 4:
                 self.write_verify(UNIT,SETTINGS,SET_WATCHDOG_TIMER) #this setting is only meaningful if the firmware version is 4 or greater.
                 self.write(UNIT,WATCHDOG_TIMER,WDT_RESET)
                 
@@ -342,12 +342,13 @@ class Batlab:
         vmag = self.read(cell,VOLTAGE_PP).asvoltage()
         self.write(UNIT,LOCK,LOCK_UNLOCKED)
         
-        if mode == MODE_DISCHARGE or mode == MODE_CHARGE or mode == MODE_IDLE or mode == MODE_IMPEDANCE or mode == MODE_STOPPED or mode == MODE_NO_CELL or mode == MODE_BACKWARDS:
+        # restore previous state
+        self.write(cell,MODE,mode) #restore previous state
+        nowmode = self.read(cell,MODE)
+        while nowmode == MODE_IMPEDANCE and mode != MODE_IMPEDANCE:
             self.write(cell,MODE,mode) #restore previous state
             nowmode = self.read(cell,MODE)
-            while nowmode == MODE_IMPEDANCE and mode != MODE_IMPEDANCE:
-                self.write(cell,MODE,mode) #restore previous state
-                nowmode = self.read(cell,MODE)
+        
         z = 0.0   
         if math.isnan(imag) or math.isnan(vmag):
             z = float('nan')
@@ -359,31 +360,27 @@ class Batlab:
         return z
     
     def ocv(self,cell):
-        mode_prev = self.read(cell,MODE).data
-        self.write(cell,MODE,MODE_IDLE)
+        sp_prev = self.read(cell,CURRENT_SETPOINT).data
+        self.write(cell,CURRENT_SETPOINT,0)
         v_prev = self.read(cell,VOLTAGE).asvoltage()
         sleep(1)
         v = self.read(cell,VOLTAGE).asvoltage()
-        while v < (v_prev * 0.995) or v > (v_prev * 1.005):
+        while v < (v_prev * 0.999) or v > (v_prev * 1.001):
             v_prev = v
             v = self.read(cell,VOLTAGE).asvoltage()
             sleep(1)
-        if mode_prev == MODE_CV_CHARGE:
-            mode_prev = MODE_CHARGE
-        elif mode_prev == MODE_CV_DISCHARGE:
-            mode_prev = MODE_DISCHARGE
-        self.write(cell,MODE,mode_prev) #restore previous state
+        self.write(cell,CURRENT_SETPOINT,sp_prev) #restore previous state
         sleep(0.1)
-        nowmode = self.read(cell,MODE).data
-        while nowmode != mode_prev:
-            self.write(cell,MODE,mode_prev)
-            sleep(0.1)
-            nowmode = self.read(cell,MODE).data
+        sp = self.read(cell,CURRENT_SETPOINT).data
+        while sp != sp_prev:
+            self.write(cell,CURRENT_SETPOINT,sp_prev)
+            sleep(0.2)
+            sp = self.read(cell,CURRENT_SETPOINT).data
         return v
     
     def charge(self,cell):
         """A macro for taking a charge measurement that handles the case if the charge register rolls over in between high and low reads"""
-        set = self.read(UNIT,SETTINGS).data
+        # set = self.read(UNIT,SETTINGS).data
         multiplier = 6.0
         # if not (set & SET_CH0_HI_RES == 0):
         #     multiplier = 1.0
