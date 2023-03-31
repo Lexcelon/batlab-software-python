@@ -5,7 +5,7 @@
   "reportingPeriod": 1.0,
   "numMeasurementCycles": 1,
   "numWarmupCycles": 0,
-  "prechargeRate": 4,
+  "prechargeRate": 3,
   "OCV_chargeInterval": 72,
   "impedanceChargeInterval": 360,
   "CVdischarge": 1,
@@ -14,12 +14,12 @@
   "constantVoltageDischargeEnable": 0,
 
   "chargeCurrentSafetyCutoff": 4.096,
-  "chargeRate": 4,
+  "chargeRate": 3,
   "chargeTemperatureCutoff": 55,
   "highVoltageCutoff": 4.2,
 
   "dischargeCurrentSafetyCutoff": 4.096,
-  "dischargeRate": 4,
+  "dischargeRate": 3,
   "dischargeTemperatureCutoff": 55,
   "lowVoltageCutoff": 2.5,
 
