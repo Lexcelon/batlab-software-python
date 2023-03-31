@@ -112,7 +112,7 @@ class Channel:
         self.bat.write_verify(UNIT,SETTINGS,settings)
 
         self.ocv = self.bat.ocv(self.slot)
-        logstr = f"{self.name},{self.bat.sn},{self.slot},{str(datetime.datetime.now())},{self.ocv},0,,,,,OPEN CIRCUIT"
+        logstr = f"{self.name},{self.bat.sn},{self.slot},{str(datetime.datetime.now())},{self.ocv},0,,,,,OCV"
         if self.settings.individual_cell_logs == 0:
             self.bat.logger.log(logstr,self.settings.logfile)
         else:
@@ -494,13 +494,13 @@ class Channel:
                                 self.last_impedance_time = datetime.datetime.now()
                                 self.zcnt += 1
                                 self.zavg += (z - self.zavg) / self.zcnt
-                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},,,{t:.4f},{z:.4f},{q:.4f},,{state},{type},,,{self.vcc:.4f}"
-                            elif self.settings.ocv_charge_interval > 0 and (self.q - self.q_prev) > self.settings.ocv_charge_interval:
-                                self.q_prev = self.q
+                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},,,{t:.4f},{z:.4f},{q:.4f},,IMP,{type},,{self.vcc:.4f}"
+                            elif self.settings.ocv_charge_interval > 0 and ((q - self.q_prev) > self.settings.ocv_charge_interval):
+                                self.q_prev = q
                                 self.ocv = self.bat.ocv(self.slot)
-                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{self.ocv:.4f},{i},{t:.4f},,{q:.4f},,{state},{type},{self.runtime()},{self.vcc}"               
+                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{self.ocv:.4f},{i},{t:.4f},,{q:.4f},,OCV,{type},{self.runtime()},{self.vcc}"               
                             else:
-                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{v:.4f},{i:.4f},{t:.4f},,{q:.4f},,{state},{self.test_type},{self.runtime()},{self.vcc:.4f}" 
+                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{v:.4f},{i:.4f},{t:.4f},,{q:.4f},,{state},{type},{self.runtime()},{self.vcc:.4f}" 
 
 
                             if self.settings.individual_cell_logs == 0:
