@@ -99,10 +99,10 @@ class Channel:
         self.bat.write_verify(self.slot,TEMP_LIMIT_DCHG,batlab.encoder.Encoder(self.settings.dischrg_tmp_cutoff).c_astemperature(self.bat.R[self.slot],self.bat.B[self.slot]))
         self.bat.write(self.slot,CHARGEH,0)
         #self.bat.write(self.slot,CHARGEL,0) # only need to write to one of the charge registers to clear them
-        self.bat.write_verify(UNIT,ZERO_AMP_THRESH,batlab.encoder.Encoder(0.01).ascurrent())
+        self.bat.write_verify(UNIT,ZERO_AMP_THRESH,batlab.encoder.Encoder(0.05).ascurrent())
         
-        if self.settings.constant_voltage_enable == True: #if we're doing constant voltage charging, we need to have current resolution down to the small range
-            self.bat.write_verify(UNIT,ZERO_AMP_THRESH,batlab.encoder.Encoder(0.05).ascurrent())
+        # if self.settings.constant_voltage_enable == True: #if we're doing constant voltage charging, we need to have current resolution down to the small range
+        #     self.bat.write_verify(UNIT,ZERO_AMP_THRESH,batlab.encoder.Encoder(0.05).ascurrent())
         
         settings = self.bat.read(UNIT,SETTINGS)  
         if self.settings.cv_discharge == True:  
