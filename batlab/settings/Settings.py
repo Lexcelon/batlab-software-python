@@ -32,6 +32,7 @@ class Settings:
         storageDischarge: Boolean
         storageDischargeVoltage: Volts
         OCV_chargeInterval: Coulombs
+        impedance_chargeInterval: Coulombs
         CVdischarge: Boolean
         testType: CYCLE, DISCHARGE, PRIME
 
@@ -80,6 +81,7 @@ class Settings:
         self.constant_voltage_stepsize      = 8
         self.constant_voltage_discharge_enable = False
         self.ocv_charge_interval            = 72
+        self.impedance_charge_interval      = 360
         self.cv_discharge                   = False
         self.test_type                      = TT_CYCLE
 
@@ -189,6 +191,8 @@ class Settings:
                 self.constant_voltage_discharge_enable = value
             if key == "OCV_chargeInterval":
                 self.ocv_charge_interval = value
+            if key == "impedanceChargeInterval":
+                self.impedance_charge_interval = value
             if key == "CVdischarge":
                 self.cv_discharge = value
             if key == "testType":

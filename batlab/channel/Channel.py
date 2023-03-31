@@ -486,7 +486,7 @@ class Channel:
                         # log the results
                         if (ts - self.last_lvl1_time).total_seconds() > self.settings.reporting_period:
                             self.last_lvl1_time = datetime.datetime.now()
-                            if (ts - self.last_impedance_time).total_seconds() > self.settings.impedance_period and self.settings.impedance_period > 0 and self.trickle_engaged == False:
+                            if self.settings.impedance_charge_interval > 0 and ((q - self.q_prev) > self.settings.impedance_charge_interval) and self.trickle_engaged == False:
                                 z = self.bat.impedance(self.slot)
                                 if math.isnan(z):
                                     z = 0
