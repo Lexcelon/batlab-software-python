@@ -292,7 +292,7 @@ class Channel:
                     self.rest_time = datetime.datetime.now()
 
                 if self.test_type == TT_PRIME:
-                    if self.q > self.q_prev_cycle * 1.005 or self.q < self.q_prev_cycle * 0.995:
+                    if (self.q > self.q_prev_cycle * 1.005 or self.q < self.q_prev_cycle * 0.995) and self.current_cycle < (self.settings.prime_max_cycles - 1):
                         self.q_prev_cycle = self.q
                         self.log_lvl2("PRIME")
                         self.settings.num_meas_cyc += 1

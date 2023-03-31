@@ -1,10 +1,12 @@
 {
   "cellPlaylistName": "G7v0",
   "testType": "CYCLE",
+  "primeMaxCycles": 3,
   "individualCellLogs": 1,
   "reportingPeriod": 1.0,
   "numMeasurementCycles": 1,
   "numWarmupCycles": 0,
+
   "prechargeRate": 3,
   "OCV_chargeInterval": 72,
   "impedanceChargeInterval": 360,
