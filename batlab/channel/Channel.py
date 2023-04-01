@@ -487,6 +487,7 @@ class Channel:
                         if (ts - self.last_lvl1_time).total_seconds() > self.settings.reporting_period:
                             self.last_lvl1_time = datetime.datetime.now()
                             if self.settings.impedance_charge_interval > 0 and ((q - self.q_prev) > self.settings.impedance_charge_interval) and self.trickle_engaged == False:
+                                self.q_prev = q
                                 z = self.bat.impedance(self.slot)
                                 if math.isnan(z):
                                     z = 0
