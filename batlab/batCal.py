@@ -155,7 +155,9 @@ try:
     sca_old = bl.read(cell,CURRENT_CALIB_SCA).data
     off_old = bl.read(cell,CURRENT_CALIB_OFF).data
     print('old calibration: SCA = ' + str(sca_old) + ', OFF = ' + str(off_old))
-    test_calibration()
+
+    if not '-skip-pretest' in sys.argv:
+        test_calibration()
 
     if not '-test-only' in sys.argv:
         print('setting scale factor to 1 and offset to 0')
@@ -247,8 +249,9 @@ try:
         bl.write(cell,CURRENT_CALIB_OFF,off_new)
         sleep(0.1)
 
-        print("Now let's try that again.")
-        test_calibration()
+        if not '-skip-posttest' in sys.argv:
+            print("Now let's try that again.")
+            test_calibration()
 
 finally:
     # stop discharge and turn off power supply output
