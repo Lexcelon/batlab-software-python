@@ -83,7 +83,7 @@ class Channel:
         
         #print the header for the individual cell logfiles if needed
         if self.settings.individual_cell_logs != 0:
-            logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Short-term Charge (C),Total Charge (C), Test State,Test Type,Runtime (s),VCC (V)"
+            logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Short-term Charge (C),Test State,Test Type,Runtime (s),VCC (V)"
             self.bat.logger.log(logfile_headerstr,self.settings.cell_logfile + self.name + '.csv')
 
         # Initialize the test settings
@@ -112,7 +112,7 @@ class Channel:
         self.bat.write_verify(UNIT,SETTINGS,settings)
 
         self.ocv = self.bat.ocv(self.slot)
-        logstr = f"{self.name},{self.bat.sn},{self.slot},{str(datetime.datetime.now())},{self.ocv},0,,,,,OCV"
+        logstr = f"{self.name},{self.bat.sn},{self.slot},{str(datetime.datetime.now())},{self.ocv},0,,,,OCV"
         if self.settings.individual_cell_logs == 0:
             self.bat.logger.log(logstr,self.settings.logfile)
         else:
@@ -175,7 +175,7 @@ class Channel:
         type = l_test_type[self.test_type]
         # runtime = datetime.datetime.now() - self.last_lvl2_time
         self.last_lvl2_time = datetime.datetime.now()
-        logstr = f"{self.name},{self.bat.sn},{self.slot},{datetime.datetime.now()},,,,,{self.q:.4f},,{state},{type},{self.runtime()},{self.vcc:.4f}"
+        logstr = f"{self.name},{self.bat.sn},{self.slot},{datetime.datetime.now()},,,,,{self.q:.4f},{state},{type},{self.runtime()},{self.vcc:.4f}"
         self.bat.logger.log(logstr,self.settings.logfile)
         # print(logstr)
         # print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot)
@@ -495,13 +495,13 @@ class Channel:
                                 self.last_impedance_time = datetime.datetime.now()
                                 self.zcnt += 1
                                 self.zavg += (z - self.zavg) / self.zcnt
-                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},,,{t:.4f},{z:.4f},{q:.4f},,IMP,{type},,{self.vcc:.4f}"
+                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},,,{t:.4f},{z:.4f},{q:.4f},IMP,{type},,{self.vcc:.4f}"
                             elif self.settings.ocv_charge_interval > 0 and ((q - self.q_prev) > self.settings.ocv_charge_interval):
                                 self.q_prev = q
                                 self.ocv = self.bat.ocv(self.slot)
-                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{self.ocv:.4f},{0},{t:.4f},,{q:.4f},,OCV,{type},{self.runtime()},{self.vcc}"               
+                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{self.ocv:.4f},{0},{t:.4f},,{q:.4f},OCV,{type},{self.runtime()},{self.vcc}"               
                             else:
-                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{v:.4f},{i:.4f},{t:.4f},,{q:.4f},,{state},{type},{self.runtime()},{self.vcc:.4f}" 
+                                logstr = f"{self.name},{self.bat.sn},{self.slot},{ts},{v:.4f},{i:.4f},{t:.4f},,{q:.4f},{state},{type},{self.runtime()},{self.vcc:.4f}" 
 
 
                             if self.settings.individual_cell_logs == 0:
