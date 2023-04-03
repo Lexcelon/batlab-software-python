@@ -176,7 +176,7 @@ try:
             # wait for Batlab's current feedback loop to stabilize
             prev_duty = 0
             duty = 1
-            while duty != prev_duty:
+            while (duty >= prev_duty + 1) or (duty <= prev_duty - 1):
                 prev_duty = duty
                 duty = bl.read(cell,DUTY).data
                 sleep(0.5)
