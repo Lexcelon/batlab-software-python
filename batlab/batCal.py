@@ -99,7 +99,7 @@ def test_calibration():
             sleep(0.05)
         bat_current = bat_curr_sum / 8
         ps_current = ps_curr_sum / 8
-        if OPTIMIZE_FOR == "ABSOLUTE":
+        if (OPTIMIZE_FOR == "ABSOLUTE") and not ('relative' in sys.argv):
             error = (bat_current - ps_current)
             print(f"Batlab says: {bat_current:.3f} A and PS says: {ps_current:.3f} A.   Error: {(error*1000):.0f} mA")
         elif OPTIMIZE_FOR == "RELATIVE" or ('relative' in sys.argv):
