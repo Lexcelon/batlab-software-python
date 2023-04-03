@@ -102,7 +102,7 @@ def test_calibration():
         if OPTIMIZE_FOR == "ABSOLUTE":
             error = (bat_current - ps_current)
             print(f"Batlab says: {bat_current:.3f} A and PS says: {ps_current:.3f} A.   Error: {(error*1000):.0f} mA")
-        elif OPTIMIZE_FOR == "RELATIVE":
+        elif OPTIMIZE_FOR == "RELATIVE" or ('relative' in sys.argv):
             error = (bat_current - ps_current) / ps_current
             print(f"Batlab says: {bat_current:.3f} A and PS says: {ps_current:.3f} A.   Error: {error:.3%}")
         
@@ -133,13 +133,31 @@ while v < 3:
 cell = i - 1
 
 try:
+    bl.write(cell,MODE,MODE_DISCHARGE)
+
+    if not '-skip-warmup' in sys.argv:
+        # the current reading is affected by temperature, so we need to run at max current until it's warmed up
+        bl.write(cell, CURRENT_SETPOINT, batlab.encoder.Encoder(max_current).assetpoint())
+        prev_duty = 0
+        secs = 0  # me_irl :(
+        while secs < 60: # wait until the duty cycle has been stable for at least 60 seconds
+            duty = bl.read(cell,DUTY).data
+            if (duty <= prev_duty + 1) and (duty >= prev_duty - 1):
+                secs += 1
+                print(f"Warming up... stable for {secs} s")
+            else:
+                secs = 0
+                print(f"Warming up... duty cycle: {duty}")
+            prev_duty = duty
+            sleep(1)
+        # after plenty of secs, it should be nicely warmed up
+
     sca_old = bl.read(cell,CURRENT_CALIB_SCA).data
     off_old = bl.read(cell,CURRENT_CALIB_OFF).data
     print('old calibration: SCA = ' + str(sca_old) + ', OFF = ' + str(off_old))
-    bl.write(cell,MODE,MODE_DISCHARGE)
     test_calibration()
 
-    if sys.argv[1] != '-t':
+    if not '-test-only' in sys.argv:
         print('setting scale factor to 1 and offset to 0')
         bl.write(cell,CURRENT_CALIB_SCA,0x4000)
         bl.write(cell,CURRENT_CALIB_OFF,0)
