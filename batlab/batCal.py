@@ -96,7 +96,7 @@ def test_calibration():
             if ps_curr == 0.0:
                 raise Fault('Current is 0.0 A. Check connections. Batlab may have a blown fuse.')
             ps_curr_sum += ps_curr
-            sleep(0.05)
+            sleep(0.5)
         bat_current = bat_curr_sum / 8
         ps_current = ps_curr_sum / 8
         if (OPTIMIZE_FOR == "ABSOLUTE") and not ('relative' in sys.argv):
@@ -179,7 +179,7 @@ try:
             while duty != prev_duty:
                 prev_duty = duty
                 duty = bl.read(cell,DUTY).data
-                sleep(0.2)
+                sleep(0.5)
 
             # make sure Batlab is in discharge mode
             if bl.read(cell,MODE).data != MODE_DISCHARGE:
@@ -191,7 +191,7 @@ try:
             for i in range(8):
                 bat_curr_sum += bl.read(cell,CURRENT).ascurrent()
                 ps_curr_sum += ps.get_current()
-                sleep(0.05)
+                sleep(0.5)
             bat_current = bat_curr_sum / 8
             ps_current = ps_curr_sum / 8
             currents[bat_current] = ps_current
@@ -247,7 +247,7 @@ try:
         print('new calibration: SCA = ' + str(sca_new) + ', OFF = ' + str(off_new))
         bl.write(cell,CURRENT_CALIB_SCA,sca_new)
         bl.write(cell,CURRENT_CALIB_OFF,off_new)
-        sleep(0.1)
+        sleep(0.5)
 
         if not '-skip-posttest' in sys.argv:
             print("Now let's try that again.")
@@ -256,6 +256,6 @@ try:
 finally:
     # stop discharge and turn off power supply output
     bl.write(cell,CURRENT_SETPOINT,batlab.encoder.Encoder(0).assetpoint())
-    sleep(0.1)
+    sleep(0.5)
     bl.write(cell,MODE,MODE_STOPPED)
     ps.ps.write('outp off')
