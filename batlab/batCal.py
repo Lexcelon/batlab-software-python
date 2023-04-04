@@ -141,7 +141,7 @@ try:
     bl.write(cell,MODE,MODE_DISCHARGE)
 
     if not '-skip-warmup' in sys.argv:
-        cell = input("Which slot is being calibrated?")
+        cell = int(input("Which slot is being calibrated?"))
         for i in range(4):
             bl.write(i,MODE,MODE_DISCHARGE)
             bl.wtite(i,CURRENT_SETPOINT,batlab.encoder.Encoder(max_current).assetpoint())
