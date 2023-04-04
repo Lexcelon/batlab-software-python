@@ -1,11 +1,19 @@
-# calibrates Batlab current measurement against a Keithley 2200-series power supply
-# optimizes for minimal absolute error in order to minimize error in capacity measurements
+# Calibrates Batlab current measurement against a Keithley 2200-series power supply
+# Use channel 3 on the power supply; it's the only one with sufficient current output.
 
 # Requirements: 
 #   Keithley I/O Layer (https://www.tek.com/en/support/software/application/850c10)
 #   PyVISA (https://pyvisa.readthedocs.io/en/latest/)
 #   IMPORTANT: copy of Batlab library obtained from https://github.com/ConorGover/batlab-software-python
-#       The original Lexcelon Batlab library has a bug which will corrupt the calibration values.
+#       The original Lexcelon Batlab library has a bug which will corrupt the calibration values!
+
+# Options:
+#   -relative: optimize for minimal relative error (least squares) instead of minimal absolute error
+#       The default mode is to optimize for minimal absolute error, which leads to more accurate capacity measurements.
+#   -skip-warmup: skips the initial warmup period
+#   -skip-pretest: skips testing with the existing calibration values before calibrating
+#   -skip-posttest: skips testing with the new calibration values after calibrating
+#   -test-only: only tests the existing calibration values, doesn't calibrate
 
 import sys
 from time import sleep
@@ -25,9 +33,6 @@ min_current = 1/8
 max_current = 3    # This should be the planned discharge current for testing
 step = 1/8
 
-# set to "RELATIVE" to optimize for minimal relative error using the least-squares method
-# set to "ABSOLUTE" to optimize for minimal absolute error (least absolute deviations)
-#   ABSOLUTE will give more accurate capacity measurements
 OPTIMIZE_FOR = "ABSOLUTE"
 
 currents = {}
