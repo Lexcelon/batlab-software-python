@@ -144,7 +144,7 @@ try:
         cell = int(input("Which slot is being calibrated?"))
         for i in range(4):
             bl.write(i,MODE,MODE_DISCHARGE)
-            bl.wtite(i,CURRENT_SETPOINT,batlab.encoder.Encoder(max_current).assetpoint())
+            bl.write(i,CURRENT_SETPOINT,batlab.encoder.Encoder(max_current).assetpoint())
         prev_duty = 0
         secs = 0  # me_irl :(
         while secs < 60: # wait until the duty cycle has been stable for at least 60 seconds
