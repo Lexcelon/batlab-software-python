@@ -456,7 +456,7 @@ class Channel:
                         #take VCC measurement - cannot safely continue test if VCC is too low
                         vc  = self.bat.read(UNIT,VCC).asvcc()
                         if not math.isnan(vc):
-                            if vc < 4.35:
+                            if vc < 4.7:
                                 print("Warning: VCC on",self.bat.sn,"is dangerously low - consider using more robust powered hub")
                             if vc < 4.1 and self.vcc < 4.1:
                                 self.bat.write_verify(self.slot,MODE,MODE_STOPPED)
