@@ -262,7 +262,7 @@ try:
 
 finally:
     # stop discharge and turn off power supply output
-    bl.write(cell,CURRENT_SETPOINT,batlab.encoder.Encoder(0).assetpoint())
-    sleep(0.5)
-    bl.write(cell,MODE,MODE_STOPPED)
+    for cell in range(3):
+        bl.write(cell,CURRENT_SETPOINT,batlab.encoder.Encoder(0).assetpoint())
+        bl.writeverify(cell,MODE,MODE_STOPPED)
     ps.ps.write('outp off')
