@@ -141,10 +141,8 @@ try:
     bl.write(cell,MODE,MODE_DISCHARGE)
 
     if not '-skip-warmup' in sys.argv:
-        cell = int(input("Which slot is being calibrated?"))
-        for i in range(4):
-            bl.write(i,MODE,MODE_DISCHARGE)
-            bl.write(i,CURRENT_SETPOINT,batlab.encoder.Encoder(max_current).assetpoint())
+        # the current reading is affected by temperature, so we need to run at max current until it's warmed up
+        bl.write(cell, CURRENT_SETPOINT, batlab.encoder.Encoder(max_current).assetpoint())
         prev_duty = 0
         secs = 0  # me_irl :(
         while secs < 60: # wait until the duty cycle has been stable for at least 60 seconds
@@ -262,7 +260,7 @@ try:
 
 finally:
     # stop discharge and turn off power supply output
-    for cell in range(3):
-        bl.write(cell,CURRENT_SETPOINT,batlab.encoder.Encoder(0).assetpoint())
-        bl.writeverify(cell,MODE,MODE_STOPPED)
+    bl.write(cell,CURRENT_SETPOINT,batlab.encoder.Encoder(0).assetpoint())
+    sleep(0.5)
+    bl.write(cell,MODE,MODE_STOPPED)
     ps.ps.write('outp off')
