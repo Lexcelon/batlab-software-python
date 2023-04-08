@@ -362,22 +362,19 @@ class Batlab:
     def ocv(self,cell):
         sp_prev = self.read(cell,CURRENT_SETPOINT).data
         self.write(cell,CURRENT_SETPOINT,0)
-        v_prev = self.read(cell,VOLTAGE).asvoltage()
         sleep(1)
         i = self.read(cell,CURRENT).ascurrent()
-        v = self.read(cell,VOLTAGE).asvoltage()
-        while (i != 0.0) or v < (v_prev * 0.999) or v > (v_prev * 1.001):
-            v_prev = v
-            v = self.read(cell,VOLTAGE).asvoltage()
+        while (i != 0.0):
             i = self.read(cell,CURRENT).ascurrent()
-            sleep(1)
+            sleep(0.5)
+        v = self.read(cell,VOLTAGE).asvoltage()
         
         self.write(cell,CURRENT_SETPOINT,sp_prev) #restore previous state
-        sleep(0.1)
+        sleep(0.5)
         sp = self.read(cell,CURRENT_SETPOINT).data
         while sp != sp_prev:
             self.write(cell,CURRENT_SETPOINT,sp_prev)
-            sleep(0.2)
+            sleep(0.5)
             sp = self.read(cell,CURRENT_SETPOINT).data
         return v
     
