@@ -136,7 +136,7 @@ class Channel:
                 self.bat.write(self.slot,MODE,MODE_CHARGE)
                 self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.chrg_rate).assetpoint())
                 self.test_state = TS_CHARGE
-        elif(self.first_stage == FS_DISCHARGE):
+        elif(self.settings.first_stage == FS_DISCHARGE):
             if (self.bat.read(self.slot,VOLTAGE).asvoltage() <= self.settings.low_volt_cutoff):
                 self.discharges -= 1
                 if self.charges > 0:
