@@ -39,6 +39,8 @@ class Channel:
 
         self.settings = self.bat.settings
         self.test_type = self.settings.test_type
+        self.charges = self.settings.charges
+        self.discharges = self.settings.discharges
         self.state = 'IDLE'
         self.timeout_time = None
 
@@ -121,7 +123,7 @@ class Channel:
         # Actually start the test
         self.bat.write_verify(self.slot,CURRENT_SETPOINT,0)
 
-        if(self.first_stage == FS_CHARGE):
+        if(self.settings.first_stage == FS_CHARGE):
             if (self.bat.read(self.slot,VOLTAGE).asvoltage() >= self.settings.high_volt_cutoff):
                 self.charges -= 1
                 if self.discharges > 0:
