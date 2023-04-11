@@ -363,25 +363,19 @@ class Batlab:
         sp_prev = self.read(cell,CURRENT_SETPOINT).data
         mode_prev = self.read(cell,MODE).data
         self.write(cell,CURRENT_SETPOINT,0)
-        sleep(1)
         i = self.read(cell,CURRENT).ascurrent()
         while (i != 0.0):
             i = self.read(cell,CURRENT).ascurrent()
-            sleep(0.5)
 
         v = self.read(cell,VOLTAGE).asvoltage()
-        
-        self.write(cell,CURRENT_SETPOINT,sp_prev) #restore previous state
-        sleep(0.5)
+
         mode = self.read(cell,MODE).data
         while mode != mode_prev:
             self.write(cell,MODE,mode_prev)
-            sleep(0.5)
             mode = self.read(cell,MODE).data
         sp = self.read(cell,CURRENT_SETPOINT).data
         while sp != sp_prev:
             self.write(cell,CURRENT_SETPOINT,sp_prev)
-            sleep(0.5)
             sp = self.read(cell,CURRENT_SETPOINT).data
         return v
     
