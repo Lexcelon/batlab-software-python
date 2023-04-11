@@ -369,7 +369,7 @@ class Batlab:
             sp_prev = 0
         # sp_prev = self.read(cell,CURRENT_SETPOINT).data
         # mode_prev = self.read(cell,MODE).data
-        self.write(cell,CURRENT_SETPOINT,0)
+        self.write(cell,MODE,MODE_IDLE)
         # self.write(cell,MODE,MODE_STOPPED)
         i = self.read(cell,CURRENT).ascurrent()
         while (i != 0.0):
