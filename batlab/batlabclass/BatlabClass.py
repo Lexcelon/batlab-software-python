@@ -365,6 +365,8 @@ class Batlab:
             sp_prev = self.read(cell,DUTY).data
         elif mode_prev == MODE_CHARGE or mode_prev == MODE_DISCHARGE:
             sp_prev = self.read(cell,CURRENT_SETPOINT).data
+        else:
+            sp_prev = 0
         # sp_prev = self.read(cell,CURRENT_SETPOINT).data
         # mode_prev = self.read(cell,MODE).data
         self.write(cell,CURRENT_SETPOINT,0)
