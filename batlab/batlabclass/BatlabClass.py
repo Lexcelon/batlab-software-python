@@ -385,6 +385,10 @@ class Batlab:
         while sp != sp_prev:
             self.write(cell,CURRENT_SETPOINT,sp_prev)
             sp = self.read(cell,CURRENT_SETPOINT).data
+        mode = self.read(cell,MODE).data
+        while mode != mode_prev:
+            self.write(cell,MODE,mode_prev)
+            mode = self.read(cell,MODE).data
         return v
     
     def charge(self,cell):
