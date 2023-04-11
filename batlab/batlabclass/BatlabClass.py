@@ -360,23 +360,24 @@ class Batlab:
         return z
     
     def ocv(self,cell):
-        sp_prev = self.read(cell,CURRENT_SETPOINT).data
+        # sp_prev = self.read(cell,CURRENT_SETPOINT).data
         mode_prev = self.read(cell,MODE).data
-        self.write(cell,CURRENT_SETPOINT,0)
+        # self.write(cell,CURRENT_SETPOINT,0)
+        self.write(cell,MODE,MODE_STOPPED)
         i = self.read(cell,CURRENT).ascurrent()
         while (i != 0.0):
             i = self.read(cell,CURRENT).ascurrent()
 
         v = self.read(cell,VOLTAGE).asvoltage()
 
-        mode = self.read(cell,MODE).data
+        mode = MODE_STOPPED
         while mode != mode_prev:
             self.write(cell,MODE,mode_prev)
             mode = self.read(cell,MODE).data
-        sp = self.read(cell,CURRENT_SETPOINT).data
-        while sp != sp_prev:
-            self.write(cell,CURRENT_SETPOINT,sp_prev)
-            sp = self.read(cell,CURRENT_SETPOINT).data
+        # sp = self.read(cell,CURRENT_SETPOINT).data
+        # while sp != sp_prev:
+        #     self.write(cell,CURRENT_SETPOINT,sp_prev)
+        #     sp = self.read(cell,CURRENT_SETPOINT).data
         return v
     
     def charge(self,cell):
