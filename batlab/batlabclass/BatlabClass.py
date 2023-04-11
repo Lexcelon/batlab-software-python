@@ -363,10 +363,8 @@ class Batlab:
         mode_prev = self.read(cell,MODE).data
         if mode_prev == MODE_CV_CHARGE:
             sp_prev = self.read(cell,DUTY).data
-            mode_prev = MODE_CHARGE
         elif mode_prev == MODE_CV_DISCHARGE:
             sp_prev = self.read(cell,DUTY).data
-            mode_prev = MODE_DISCHARGE
         elif mode_prev == MODE_CHARGE or mode_prev == MODE_DISCHARGE:
             sp_prev = self.read(cell,CURRENT_SETPOINT).data
         else:
@@ -380,20 +378,23 @@ class Batlab:
 
         v = self.read(cell,VOLTAGE).asvoltage()
 
-        # mode = MODE_STOPPED
-        # while mode != mode_prev:
-        #     self.write(cell,MODE,mode_prev)
-        #     mode = self.read(cell,MODE).data
         sp = self.read(cell,CURRENT_SETPOINT).data
         while sp != sp_prev:
             self.write(cell,CURRENT_SETPOINT,sp_prev)
             # sleep(0.5)
             sp = self.read(cell,CURRENT_SETPOINT).data
         mode = self.read(cell,MODE).data
-        while mode != mode_prev:
-            self.write(cell,MODE,mode_prev)
-            # sleep(0.5)
-            mode = self.read(cell,MODE).data
+        if mode_prev == MODE_CV_CHARGE:
+            while mode != MODE_CHARGE and mode != MODE_CV_CHARGE:
+                self.write(cell,MODE,MODE_CHARGE)
+                mode = self.read(cell,MODE).data
+        elif mode_prev == MODE_CV_DISCHARGE:
+            while mode != MODE_DISCHARGE and mode != MODE_CV_DISCHARGE:
+                self.write(cell,MODE,MODE_DISCHARGE)
+                mode = self.read(cell,MODE).data
+        else:
+            while mode != mode_prev:
+                self.write(cell,MODE,mode_prev)
         return v
     
     def charge(self,cell):

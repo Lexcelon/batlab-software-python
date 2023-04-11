@@ -11,7 +11,7 @@
 
   "prechargeRate": 3,
   "OCV_chargeInterval": 72,
-  "impedanceChargeInterval": 360,
+  "impedanceChargeInterval": 0,
   "CVdischarge": 1,
 
   "constantVoltageEnable": 0,
