@@ -68,6 +68,12 @@ class Channel:
     def cycle_number(self):
         """Number of charge/discharge cycles completed"""
         return self.current_cycle
+    
+    def charges(self):
+        return self.charges
+    
+    def discharges(self):
+        return self.discharges
 
     def end_test(self):
         self.test_state = TS_IDLE
@@ -207,7 +213,7 @@ class Channel:
             if (datetime.datetime.now() - self.rest_time).total_seconds() > self.settings.rest_time:
                 self.log_lvl2("CHARGEREST")
 
-                if self.charges > 0:
+                if self.discharges > 0:
                     self.test_state = TS_DISCHARGE
 
                     # reset pulse discharge variables
@@ -219,6 +225,9 @@ class Channel:
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.dischrg_rate).assetpoint())
                     self.bat.write(self.slot,MODE,MODE_DISCHARGE)
                     # self.current_cycle += 1
+                else:
+                    self.test_state = TS_IDLE
+                    print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot)
 
         elif self.test_state == TS_DISCHARGE:
             # handle feature to end test after certain amount of time
