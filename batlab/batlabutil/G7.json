@@ -10,7 +10,7 @@
   "numWarmupCycles": 0,
 
   "prechargeRate": 3,
-  "OCV_chargeInterval": 72,
+  "OCV_chargeInterval": 144,
   "impedanceChargeInterval": 0,
   "CVdischarge": 1,
 
