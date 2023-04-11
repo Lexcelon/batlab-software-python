@@ -86,18 +86,13 @@ def batlab_parse_cmd(cmd,bp):
         for port,bat in bp.batpool.items():
             if bp.batactive == port:
                 print(port,bat.sn,'*Active*',':')
-                for aa in range(0,4):
-                    if bat.channel[aa].is_testing():
-                        print('    Channel ',aa,': TESTING',bat.channel[aa].name,'Runtime:',bat.channel[aa].runtime(),'State:',bat.channel[aa].state,'State Runtime:',bat.channel[aa].runtime_cycle(),'Cycle Number:',bat.channel[aa].cycle_number())
-                    else:
-                        print('    Channel ',aa,': IDLE')
             else:
                 print(port,bat.sn,':')
-                for aa in range(0,4):
-                    if bat.channel[aa].is_testing():
-                        print('    Channel ',aa,': TESTING',bat.channel[aa].name,'Runtime:',bat.channel[aa].runtime(),'State:',bat.channel[aa].state,'State Runtime:',bat.channel[aa].runtime_cycle(),'Cycle Number:',bat.channel[aa].cycle_number())
-                    else:
-                        print('    Channel ',aa,': IDLE')
+            for aa in range(0,4):
+                if bat.channel[aa].is_testing():
+                    print(f"    Channel {aa}: TESTING {bat.channel[aa].name} Runtime: {bat.channel[aa].runtime()} State: {bat.channel[aa].state} State Runtime: {bat.channel[aa].runtime_cycle()} Charges remaining: {bat.channel[aa].charges()} Discharges remaining: {bat.channel[aa].discharges()}")
+                else:
+                    print(f"    Channel {aa}: IDLE")
 
     if p[0] == 'active':
         if len(p) > 1:
