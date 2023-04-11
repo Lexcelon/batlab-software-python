@@ -361,16 +361,11 @@ class Batlab:
     
     def ocv(self,cell):
         mode_prev = self.read(cell,MODE).data
-        if mode_prev == MODE_CV_CHARGE:
-            sp_prev = self.read(cell,DUTY).data
-        elif mode_prev == MODE_CV_DISCHARGE:
+        if mode_prev == MODE_CV_CHARGE or mode_prev == MODE_CV_DISCHARGE:
             sp_prev = self.read(cell,DUTY).data
         else:
             sp_prev = self.read(cell,CURRENT_SETPOINT).data
-        # else:
-        #     sp_prev = 0
-        # sp_prev = self.read(cell,CURRENT_SETPOINT).data
-        # mode_prev = self.read(cell,MODE).data
+
         self.write(cell,MODE,MODE_STOPPED)
         i = self.read(cell,CURRENT).ascurrent()
         while (i != 0.0):
@@ -378,11 +373,6 @@ class Batlab:
 
         v = self.read(cell,VOLTAGE).asvoltage()
 
-        # sp = self.read(cell,CURRENT_SETPOINT).data
-        # while sp != sp_prev:
-        #     self.write(cell,CURRENT_SETPOINT,sp_prev)
-        #     # sleep(0.5)
-        #     sp = self.read(cell,CURRENT_SETPOINT).data
         mode = self.read(cell,MODE).data
         sp = self.read(cell,CURRENT_SETPOINT).data
         if mode_prev == MODE_CV_CHARGE:
