@@ -90,7 +90,7 @@ def batlab_parse_cmd(cmd,bp):
                 print(port,bat.sn,':')
             for aa in range(0,4):
                 if bat.channel[aa].is_testing():
-                    print(f"    Channel {aa}: TESTING {bat.channel[aa].name} Runtime: {bat.channel[aa].runtime()} State: {bat.channel[aa].state} State Runtime: {bat.channel[aa].runtime_cycle()} Charges remaining: {bat.channel[aa].charges()} Discharges remaining: {bat.channel[aa].discharges()}")
+                    print(f"    Channel {aa}: TESTING {bat.channel[aa].name} Runtime: {bat.channel[aa].runtime()} State: {bat.channel[aa].state} State Runtime: {bat.channel[aa].runtime_cycle()} Charges remaining: {bat.channel[aa].charges} Discharges remaining: {bat.channel[aa].discharges}")
                 else:
                     print(f"    Channel {aa}: IDLE")
 

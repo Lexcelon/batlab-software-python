@@ -68,12 +68,6 @@ class Channel:
     def cycle_number(self):
         """Number of charge/discharge cycles completed"""
         return self.current_cycle
-    
-    def charges(self):
-        return self.charges
-    
-    def discharges(self):
-        return self.discharges
 
     def end_test(self):
         self.test_state = TS_IDLE
@@ -91,7 +85,7 @@ class Channel:
         
         #print the header for the individual cell logfiles if needed
         if self.settings.individual_cell_logs != 0:
-            logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Short-term Charge (C),Test State,Test Type,Runtime (s),VCC (V)"
+            logfile_headerstr = "Cell Name,Batlab SN,Channel,Timestamp (s),Voltage (V),Current (A),Temperature (C),Impedance (Ohm),Charge (C),Test State,Test Type,Runtime (s),VCC (V)"
             self.bat.logger.log(logfile_headerstr,self.settings.cell_logfile + self.name + '.csv')
 
         # Initialize the test settings
