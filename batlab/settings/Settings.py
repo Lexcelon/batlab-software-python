@@ -88,6 +88,7 @@ class Settings:
         self.charges                        = 1
         self.discharges                     = 1
         self.first_stage                    = FS_DISCHARGE
+        self.final_soc                      = 80
 
         self.flag_ignore_safety_limits = False
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
@@ -202,12 +203,6 @@ class Settings:
             if key == "testType":
                 if value == "CYCLE":
                     self.test_type = TT_CYCLE
-                elif value == "DISCHARGE":
-                    self.test_type = TT_DISCHARGE
-                elif value == "PRIME":
-                    self.test_type = TT_PRIME
-                elif value == "CHARGE":
-                    self.test_type = TT_CHARGE
             if key == "primeMaxCycles":
                 self.prime_max_cycles = value
             if key == "charges":
@@ -219,6 +214,8 @@ class Settings:
                     self.first_stage = FS_CHARGE
                 elif value == "DISCHARGE":
                     self.first_stage = FS_DISCHARGE
+            if key == "finalSOC":
+                self.final_soc = value
 
         self.logfile = 'batlab-log_' + self.cell_playlist_name + '.csv'
         self.cell_logfile = 'batlab-log_' + self.cell_playlist_name + '_'

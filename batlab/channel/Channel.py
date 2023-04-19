@@ -41,8 +41,11 @@ class Channel:
         self.test_type = self.settings.test_type
         self.charges = self.settings.charges
         self.discharges = self.settings.discharges
+        self.final_charge = False
+        self.final_discharge = False
         self.state = 'IDLE'
         self.timeout_time = None
+        self.ocv_charge_interval = self.settings.ocv_charge_interval
 
         self.critical_section = threading.Lock()
         thread = threading.Thread(target=self.thd_channel)
@@ -124,6 +127,8 @@ class Channel:
         self.bat.write_verify(self.slot,CURRENT_SETPOINT,0)
 
         if(self.settings.first_stage == FS_CHARGE):
+            if self.discharges < 1:
+                self.final_charge = True
             if (self.bat.read(self.slot,VOLTAGE).asvoltage() >= self.settings.high_volt_cutoff):
                 self.charges -= 1
                 if self.discharges > 0:
@@ -137,6 +142,8 @@ class Channel:
                 self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.chrg_rate).assetpoint())
                 self.test_state = TS_CHARGE
         elif(self.settings.first_stage == FS_DISCHARGE):
+            if self.charges < 1:
+                self.final_discharge = True
             if (self.bat.read(self.slot,VOLTAGE).asvoltage() <= self.settings.low_volt_cutoff):
                 self.discharges -= 1
                 if self.charges > 0:
@@ -219,6 +226,9 @@ class Channel:
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.dischrg_rate).assetpoint())
                     self.bat.write(self.slot,MODE,MODE_DISCHARGE)
                     # self.current_cycle += 1
+
+                    if self.charges == 0 and self.discharges == 1:
+                        self.final_discharge = True
                 else:
                     self.test_state = TS_IDLE
                     print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot)
@@ -278,18 +288,6 @@ class Channel:
                     self.test_state = TS_DISCHARGEREST
                     self.rest_time = datetime.datetime.now()
 
-                if self.test_type == TT_PRIME:
-                    if (self.q > self.q_prev_cycle * 1.005 or self.q < self.q_prev_cycle * 0.995) and self.current_cycle < (self.settings.prime_max_cycles - 1):
-                        self.q_prev_cycle = self.q
-                        self.log_lvl2("PRIME")
-                        self.settings.num_meas_cyc += 1
-                        self.test_state = TS_DISCHARGEREST
-                        self.rest_time = datetime.datetime.now()
-                    else:
-                        self.log_lvl2("PRIME")
-                        self.test_state = TS_IDLE
-                        print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot)
-
 
         elif self.test_state == TS_DISCHARGEREST:
             if (datetime.datetime.now() - self.rest_time).total_seconds() > self.settings.rest_time:
@@ -309,6 +307,10 @@ class Channel:
                     self.bat.write(self.slot,MODE,MODE_CHARGE)
                     sleep(0.010)
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.chrg_rate).assetpoint())
+
+                    if self.discharges == 0 and self.charges == 1:
+                        self.final_charge = True
+
                 else:
                     self.test_state = TS_IDLE
                     print('Test Completed: Batlab',self.bat.sn,', Channel',self.slot)
@@ -356,16 +358,19 @@ class Channel:
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.trickle_chrg_rate).assetpoint())
                     self.trickle_engaged = True
 
+            if self.final_charge == True:
+                if self.q_prev_cycle > 0:
+                    if self.q > self.q_prev_cycle * self.settings.final_soc:
+                        self.charges -= 1
+                        self.log_lvl2("CHARGE")
+                        self.test_state = TS_CHARGEREST
+                        self.rest_time = datetime.datetime.now()
+
             if mode == MODE_STOPPED:
                 self.charges -= 1
                 self.log_lvl2("CHARGE")
                 self.test_state = TS_CHARGEREST
                 self.rest_time = datetime.datetime.now()
-                if self.current_cycle >= (self.settings.num_meas_cyc + self.settings.num_warm_up_cyc):
-                    if self.settings.bool_storage_dischrg:
-                        self.test_state = TS_POSTDISCHARGE
-                        self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.dischrg_rate).assetpoint())
-                        self.bat.write(self.slot,MODE,MODE_DISCHARGE)
 
         elif self.test_state == TS_POSTDISCHARGE:
             if mode == MODE_STOPPED or v < self.settings.storage_dischrg_volt:
@@ -465,6 +470,8 @@ class Channel:
                             self.vprev = v
 
                         self.q = q
+                        if q != 0:
+                            self.q_prev_cycle = q
                         state = l_test_state[self.test_state]
                         type = l_test_type[self.test_type]
 

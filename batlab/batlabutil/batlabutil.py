@@ -411,8 +411,6 @@ def batlab_parse_cmd(cmd,bp):
                     b.calibration_recover(p[1])
 
                 if p[0] == 'cycletest' and len(p) > 2:
-                    TT_DISCHARGE = 0
-                    TT_CYCLE = 1
                     #try:
                     if p[1] == 'all':
                         if len(p) > 5:

@@ -9,6 +9,8 @@
   "firstStage": "DISCHARGE",
   "numWarmupCycles": 0,
 
+  "finalSOC": 0.3,
+
   "prechargeRate": 3,
   "OCV_chargeInterval": 144,
   "impedanceChargeInterval": 0,
