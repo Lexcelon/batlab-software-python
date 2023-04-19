@@ -169,7 +169,8 @@ class Channel:
         self.temperature0 = self.bat.read(self.slot,TEMPERATURE).astemperature_c(self.bat.R,self.bat.B)
         self.q = 0
         self.q_prev = 0
-        self.q_prev_cycle = 0
+        self.q_prev_charge = 0
+        self.q_prev_discharge = 0
         self.current_cycle = 0
         self.vcc = 5.0
         self.vprev = 0.0
@@ -280,13 +281,20 @@ class Channel:
                     self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.trickle_dischrg_rate).assetpoint())
                     self.trickle_engaged = True
 
+
+            if self.final_discharge == True:
+                if self.q_prev_discharge > 0:
+                    if self.q > self.q_prev_discharge * self.settings.final_soc:
+                        self.discharges -= 1
+                        self.log_lvl2("CHARGE")
+                        self.test_state = TS_CHARGEREST
+                        self.rest_time = datetime.datetime.now()
+
             if mode == MODE_STOPPED:
                 self.discharges -= 1
-
-                if self.test_type == TT_CYCLE:
-                    self.log_lvl2("DISCHARGE")
-                    self.test_state = TS_DISCHARGEREST
-                    self.rest_time = datetime.datetime.now()
+                self.log_lvl2("DISCHARGE")
+                self.test_state = TS_DISCHARGEREST
+                self.rest_time = datetime.datetime.now()
 
 
         elif self.test_state == TS_DISCHARGEREST:
@@ -359,8 +367,8 @@ class Channel:
                     self.trickle_engaged = True
 
             if self.final_charge == True:
-                if self.q_prev_cycle > 0:
-                    if self.q > self.q_prev_cycle * self.settings.final_soc:
+                if self.q_prev_charge > 0:
+                    if self.q > self.q_prev_charge * self.settings.final_soc:
                         self.charges -= 1
                         self.log_lvl2("CHARGE")
                         self.test_state = TS_CHARGEREST
@@ -471,7 +479,11 @@ class Channel:
 
                         self.q = q
                         if q != 0:
-                            self.q_prev_cycle = q
+                            if self.test_state == TS_CHARGE and self.final_charge == False:
+                                self.q_prev_charge = q
+                            elif self.test_state == TS_DISCHARGE and self.final_discharge == False:
+                                self.q_prev_discharge = q
+                        
                         state = l_test_state[self.test_state]
                         type = l_test_type[self.test_type]
 

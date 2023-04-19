@@ -4,8 +4,8 @@
   "primeMaxCycles": 3,
   "individualCellLogs": 1,
   "reportingPeriod": 1.0,
-  "charges": 1,
-  "discharges": 1,
+  "charges": 2,
+  "discharges": 2,
   "firstStage": "DISCHARGE",
   "numWarmupCycles": 0,
 
