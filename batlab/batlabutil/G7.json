@@ -1,17 +1,14 @@
 {
   "cellPlaylistName": "G7v0",
   "testType": "CYCLE",
-  "primeMaxCycles": 3,
   "individualCellLogs": 1,
   "reportingPeriod": 1.0,
   "charges": 2,
   "discharges": 2,
   "firstStage": "DISCHARGE",
-  "numWarmupCycles": 0,
 
   "finalSOC": 0.3,
 
-  "prechargeRate": 3,
   "OCV_chargeInterval": 144,
   "impedanceChargeInterval": 0,
   "CVdischarge": 1,
@@ -29,12 +26,10 @@
   "dischargeTemperatureCutoff": 55,
   "lowVoltageCutoff": 2.5,
 
-  "impedanceReportingPeriod": 600, 
   "restPeriod": 500,
   "sineWaveFrequency": 39.0625,
   "sineWaveMagnitude": 2.0,
 
-  "storageDischarge": 0,
   "trickleEnable": 0,
   "pulseEnable": 0
 }

@@ -127,7 +127,7 @@ class Channel:
         self.bat.write_verify(self.slot,CURRENT_SETPOINT,0)
 
         if(self.settings.first_stage == FS_CHARGE):
-            if self.discharges < 1:
+            if self.charges == 1:
                 self.final_charge = True
             if (self.bat.read(self.slot,VOLTAGE).asvoltage() >= self.settings.high_volt_cutoff):
                 self.charges -= 1
@@ -142,7 +142,7 @@ class Channel:
                 self.bat.write_verify(self.slot,CURRENT_SETPOINT,batlab.encoder.Encoder(self.settings.chrg_rate).assetpoint())
                 self.test_state = TS_CHARGE
         elif(self.settings.first_stage == FS_DISCHARGE):
-            if self.charges < 1:
+            if self.discharges == 1:
                 self.final_discharge = True
             if (self.bat.read(self.slot,VOLTAGE).asvoltage() <= self.settings.low_volt_cutoff):
                 self.discharges -= 1
