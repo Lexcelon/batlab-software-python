@@ -38,14 +38,10 @@ class Channel:
         self.killevt = threading.Event()
 
         self.settings = self.bat.settings
-        self.test_type = self.settings.test_type
-        self.charges = self.settings.charges
-        self.discharges = self.settings.discharges
         self.final_charge = False
         self.final_discharge = False
         self.state = 'IDLE'
         self.timeout_time = None
-        self.ocv_charge_interval = self.settings.ocv_charge_interval
 
         self.critical_section = threading.Lock()
         thread = threading.Thread(target=self.thd_channel)
@@ -79,6 +75,10 @@ class Channel:
     def start_test(self,cellname=None,timeout_time=None):
         """Initialize the test state machine and start a test on this Batlab channel. First sets the Batlab to the settings in the ``settings`` data member."""
         self.settings = deepcopy(self.bat.settings)
+        self.test_type = self.settings.test_type
+        self.charges = self.settings.charges
+        self.discharges = self.settings.discharges
+        self.ocv_charge_interval = self.settings.ocv_charge_interval
 
         if cellname is not None:
             self.name = cellname
@@ -455,7 +455,8 @@ class Channel:
                         vc  = self.bat.read(UNIT,VCC).asvcc()
                         if not math.isnan(vc):
                             if vc < 4.7:
-                                print("Warning: VCC on",self.bat.sn,"is dangerously low - consider using more robust powered hub")
+                                print("Warning: VCC on",self.bat.sn,"is dangerously low.")
+                                print("This could be caused by using multiple Batlab units with the same 5V power supply.")
                             if vc < 4.1 and self.vcc < 4.1:
                                 self.bat.write_verify(self.slot,MODE,MODE_STOPPED)
                                 self.test_state = TS_IDLE
