@@ -212,6 +212,11 @@ class Channel:
     def state_machine_cycletest(self,mode,v):
 
         if self.test_state == TS_CHARGEREST:
+            if self.i > 0.0:
+                self.bat.write(self.slot,CURRENT_SETPOINT,0)
+                sleep(1)
+                self.bat.write(self.slot,MODE,MODE_STOPPED)
+                
             if (datetime.datetime.now() - self.rest_time).total_seconds() > self.settings.rest_time:
                 self.log_lvl2("CHARGEREST")
 
@@ -298,6 +303,11 @@ class Channel:
 
 
         elif self.test_state == TS_DISCHARGEREST:
+            if self.i > 0.0:
+                self.bat.write(self.slot,CURRENT_SETPOINT,0)
+                sleep(1)
+                self.bat.write(self.slot,MODE,MODE_STOPPED)
+
             if (datetime.datetime.now() - self.rest_time).total_seconds() > self.settings.rest_time:
                 self.log_lvl2("DISCHARGEREST")
                 self.current_cycle += 1
